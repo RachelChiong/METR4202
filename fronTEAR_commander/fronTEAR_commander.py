@@ -336,7 +336,6 @@ class FronTEARCommander(Node):
 
         while not self.nav.isTaskComplete():
             feedback = self.nav.getFeedback()
-            print(feedback)
         self.get_result()
         # if self.nav.getResult() == TaskResult.FAILED:
         #     rotate_pose = self.initialise_pose(0.0, 0.0, 0.0, 0.0, 1.0)
