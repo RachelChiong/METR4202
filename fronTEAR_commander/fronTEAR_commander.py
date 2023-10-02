@@ -111,6 +111,10 @@ class FronTEARCommander(Node):
         self.goal2 = self.initialise_pose(-1.5, 1.0, 0.0, 0.0, -1.57)
         self.nav.goToPose(self.initial_pose)
 
+        # Store explored areas
+        self.explored_waypoints = set()
+        self.failed_waypoints = set()
+
         # TODO: Add init code here...
 
 
@@ -121,6 +125,7 @@ class FronTEARCommander(Node):
         elif result == TaskResult.CANCELED:
             print('Goal was canceled!')
         elif result == TaskResult.FAILED:
+
             print('Goal failed!')
 
 
@@ -138,24 +143,36 @@ class FronTEARCommander(Node):
         queue = PriorityQueue()
 
         for el in frontier:
+            # Get new centre point of the robot index
             index = el[0] * 60 + el[1]
-            queue.put((data[index], el))
-            print(f"Cost: {data[index]}, {el}")
+
+            # Total cost
+            total = 0
+            count = 0
+
+            # Aggregate the cost of moving the robot to the new location,
+            # A 5 x 5 square around the robot since the radius of the bot is 0.22,
+            # and each square represents 0.05
+            for x in range(-5, 5):
+                for y in range(-5, 5):
+                    new_index = index + (x * 60) + y
+                    total += data[new_index]
+                    count += 1
+
+            # Calculate the average cost of moving the robot to that location
+            avg_cost = total / count
+
+            queue.put((avg_cost, el))
+            print(f"Cost: single point - {data[index]}, average region - {avg_cost}, {el}")
 
         best_move = queue.get()
 
         # Wait until get a low value unknown space
-        while best_move[0] < 40:
-            best_move = queue.get()
-
 
         print(f"Best move: {best_move}")
         x = (30 - best_move[1][0]) * 0.05
         y = (30 - best_move[1][1]) * 0.05
         print(f"New waypoint: ({x}, {y}) ")
-
-        with open("waypoints.txt", "a") as file:
-            file.write(f"New waypoint: {best_move}\n")
 
         # Output this new waypoint
         return self.initialise_pose(x, y, 0, 0, 0)
@@ -215,19 +232,17 @@ class FronTEARCommander(Node):
         if self.bt_status != 'IDLE':
             return
 
-        position = msg.pose.pose.position
-        orientation = msg.pose.pose.orientation
+        self.current_position = msg.pose.pose.position
+        self.current_orientation = msg.pose.pose.orientation
 
-        x = position.x
-        y = position.y
-        z = position.z
+        x = self.current_position.x
+        y = self.current_position.y
+        z = self.current_position.z
 
-        roll, pitch, yaw = quaternion_to_euler(orientation)
+        roll, pitch, yaw = quaternion_to_euler(self.current_orientation)
 
         print(f"Robot Position (x, y, z): ({x}, {y}, {z})")
         print(f"Robot Orientation (roll, pitch, yaw): ({roll}, {pitch}, {yaw})")
-        with open("waypoints.txt", "a") as file:
-            file.write(f"Robot Position (x, y, z): ({x}, {y}, {z})\n")
         return
 
 

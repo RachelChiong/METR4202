@@ -9,6 +9,11 @@
 - nav2_simple_commander
 - tf_transformations
 
+These can be installed using
+```
+sudo apt install ros-humble-nav2-simple-commander ros-humble-tf-transformations python3-transforms3d
+```
+
 ## Build the package
 ```
 cd ~/turtlebot3_ws
