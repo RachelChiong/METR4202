@@ -15,12 +15,19 @@ from map_msgs.msg import OccupancyGridUpdate
 from visualization_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped
 
+# External packages (requirements)
 from nav2_simple_commander.robot_navigator import *
 from builtin_interfaces.msg import Duration
 import tf_transformations as tft
+import numpy as np
+import math
+from queue import *
 
 # Custom packages
 import fronTEAR_commander.nav2_waypoints as nav2_waypoints
+
+OCC_THRESHOLD = 10
+MIN_FRONTIER_SIZE = 5
 
 def quaternion_to_euler(quaternion):
     import math
@@ -54,8 +61,9 @@ class FronTEARCommander(Node):
         self.subscription
 
         # Map which will be used for exploration planning
+        # Higher cost - obstacles/walls, lower cost - free space
         self.costmap = self.create_subscription(
-                            OccupancyGrid,
+                            Costmap,
                             "costmap",
                             self.costmap_callback,
                             10)
@@ -69,6 +77,7 @@ class FronTEARCommander(Node):
                                     10)
         self.costmap_updates
 
+        # Gets Robot's current position
         self.odom = self.create_subscription(
             Odometry,
             '/odom',
@@ -88,7 +97,9 @@ class FronTEARCommander(Node):
             'goal_pose',
             10)
 
+
         self.nav = BasicNavigator()
+        self.nav.clearAllCostmaps()
 
         self.initial_pose = self.initialise_pose(-1.0, -0.5, 0.0, 0.0, 0.0)
         self.nav.setInitialPose(self.initial_pose)
@@ -98,7 +109,7 @@ class FronTEARCommander(Node):
 
         self.goal1 = self.initialise_pose(1.5, -1.0, 0.0, 0.0, 1.57)
         self.goal2 = self.initialise_pose(-1.5, 1.0, 0.0, 0.0, -1.57)
-        self.nav.goToPose(self.goal2)
+        self.nav.goToPose(self.initial_pose)
 
         # TODO: Add init code here...
 
@@ -111,6 +122,71 @@ class FronTEARCommander(Node):
             print('Goal was canceled!')
         elif result == TaskResult.FAILED:
             print('Goal failed!')
+
+
+    def get_frontier_poses(self):
+        """
+        Local costmap is 60 x 60 grid of 0.05 resolution tiles
+        Skipping every 10
+        """
+        frontier = [(10, 10), (10, 30), (10, 50), (30, 10), (30, 50), (50, 10), (50, 30), (50, 50)]
+        cm = self.nav.getLocalCostmap()
+        gm = self.nav.getGlobalCostmap()
+        print(f"Global costmap resolution: {gm.metadata.resolution}, x: {gm.metadata.size_x}, y: {gm.metadata.size_y} ")
+        # print(self.nav.getGlobalCostmap().resolution, )
+        data = cm.data
+        queue = PriorityQueue()
+
+        for el in frontier:
+            index = el[0] * 60 + el[1]
+            queue.put((data[index], el))
+            print(f"Cost: {data[index]}, {el}")
+
+        best_move = queue.get()
+
+        # Wait until get a low value unknown space
+        while best_move[0] < 40:
+            best_move = queue.get()
+
+
+        print(f"Best move: {best_move}")
+        x = (30 - best_move[1][0]) * 0.05
+        y = (30 - best_move[1][1]) * 0.05
+        print(f"New waypoint: ({x}, {y}) ")
+
+        with open("waypoints.txt", "a") as file:
+            file.write(f"New waypoint: {best_move}\n")
+
+        # Output this new waypoint
+        return self.initialise_pose(x, y, 0, 0, 0)
+
+
+    def get_frontier(pose: PoseStamped, costmap: Costmap, logger: BehaviorTreeLog) -> list:
+
+        # points that have been enqueued by the outer BFS
+        MAP_OPEN_LIST = 1
+
+        # points that have been dequeued by the outer BFS
+        MAP_CLOSE_LIST = 2
+
+        # points that have been enqueued by the inner BFS
+        FRONTIER_OPEN_LIST = 3
+
+        # points that have been dequeued by the outer BFS
+        FRONTIER_CLOSE_LIST = 4
+
+        queue_m = SimpleQueue()
+        queue_m.put(pose)
+        poses = {}
+        poses[pose] = MAP_OPEN_LIST
+
+        while queue_m is not None:
+            p = queue_m.get()
+
+            if poses[pose] == MAP_CLOSE_LIST:
+                continue
+
+        print(costmap.data)
 
 
     def initialise_pose(self, x_pos: float, y_pos: float, roll: float, pitch: float, yaw: float) -> PoseStamped:
@@ -150,6 +226,8 @@ class FronTEARCommander(Node):
 
         print(f"Robot Position (x, y, z): ({x}, {y}, {z})")
         print(f"Robot Orientation (roll, pitch, yaw): ({roll}, {pitch}, {yaw})")
+        with open("waypoints.txt", "a") as file:
+            file.write(f"Robot Position (x, y, z): ({x}, {y}, {z})\n")
         return
 
 
@@ -165,25 +243,27 @@ class FronTEARCommander(Node):
 
            if event.node_name == 'NavigateRecovery' and \
                event.current_status == 'IDLE':
-               # Get next node to explore and send robot there
-                   self.send_goal()
+                # Get next node to explore and send robot there
+                new_pose = self.get_frontier_poses()
+                self.send_goal(new_pose)
         return
 
-    def send_goal(self):
+    def send_goal(self, goal: PoseStamped):
         self.goal_counter += 1
-        if self.goal_counter % 2:
-            self.publisher_.publish(self.goal1)
-            # self.nav.goToPose(self.goal2)
-        else:
-            self.publisher_.publish(self.goal2)
-            # self.nav.goToPose(self.goal1)
+        self.publisher_.publish(goal)
+        # if self.goal_counter % 2:
+        #     self.publisher_.publish(self.goal1)
+        #     # self.nav.goToPose(self.goal2)
+        # else:
+        #     self.publisher_.publish(self.goal2)
+        #     # self.nav.goToPose(self.goal1)
 
         while not self.nav.isTaskComplete():
             feedback = self.nav.getFeedback()
         self.get_result()
 
-    def costmap_callback(self):
-        print("costmap callback")
+    def costmap_callback(self, msg: Costmap):
+        print("Costmap: ", msg.data)
         return
 
     def costmap_updates_callback(self):
