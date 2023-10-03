@@ -146,8 +146,8 @@ class FronTEARCommander(Node):
         queue = PriorityQueue()
 
         # Get all possible frontier points
-        f = [(x, y) for x in (5, cm.metadata.size_y - 5) for y in range(5, cm.metadata.size_x, 5)]
-        f += [(x, y) for x in range(5, cm.metadata.size_y, 5) for y in range (5, cm.metadata.size_x - 5)]
+        f = [(x, y) for x in (5, cm.metadata.size_x - 5) for y in range(5, cm.metadata.size_y, 5)]
+        f += [(x, y) for x in range(5, cm.metadata.size_x, 5) for y in range (5, cm.metadata.size_y - 5)]
 
         for el in f:
             # Get new centre point of the robot index
