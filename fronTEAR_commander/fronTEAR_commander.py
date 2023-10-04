@@ -452,8 +452,12 @@ class FronTEARCommander(Node):
             print("Frontier: ", frontiers)
             location = None
             largestDist = 0
+
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
+                print(self.currentPose.position.x, self.currentPose.position.y)
+                if (round(f[0], 1),round(f[1],1)) in self.explored_waypoints:
+                    continue
                 if  dist > largestDist:
                     largestDist = dist
                     location = f
@@ -461,6 +465,8 @@ class FronTEARCommander(Node):
             pose.pose.position.x = location[0]
             pose.pose.position.y = location[1]
             pose.pose.orientation.w = 1.0
+
+            self.explored_waypoints.add((round(location[0], 1), round(location[1], 1)))
             return pose
 
 
@@ -470,8 +476,8 @@ class FronTEARCommander(Node):
                 continue
 
             # 60 x 60 grid so (30, 30) is centre
-            x_diff = (30 - best_move[1][0]) * 0.05
-            y_diff = (30 - best_move[1][1]) * 0.05
+            x_diff = (best_move[1][0]) * 0.05
+            y_diff = (best_move[1][1]) * 0.05
 
             # Round to single decimal place of precision to prevent repeat
             # movements
@@ -610,8 +616,8 @@ class FronTEARCommander(Node):
                 # Get next node to explore and send robot there
                 if self.current_position == 0:
                     pass
-                new_pose = self.get_best_waypoint()
-                self.send_goal(new_pose)
+                # # new_pose = self.get_best_waypoint()
+                # # self.send_goal(new_pose)
         return
 
     def send_goal(self, goal: PoseStamped):
@@ -648,10 +654,17 @@ def main(args=None):
     while fronTEAR_commander.costmap == None:
         rclpy.spin_once(fronTEAR_commander, timeout_sec=1.0)
 
-    pose = fronTEAR_commander.get_best_waypoint()
-    while pose is not None:
-        fronTEAR_commander.nav.goToPose(pose)
+    while True:
         pose = fronTEAR_commander.get_best_waypoint()
+        fronTEAR_commander.nav.goToPose(pose)
+        while not fronTEAR_commander.nav.isTaskComplete():
+            pass
+        print(fronTEAR_commander.nav.getResult())
+        #frontiers = getFrontier(fronTEAR_commander.currentPose, fronTEAR_commander.map)
+    # pose = fronTEAR_commander.get_best_waypoint()
+    # while pose is not None:
+    #     fronTEAR_commander.nav.goToPose(pose)
+    #     pose = fronTEAR_commander.get_best_waypoint()
     rclpy.spin(fronTEAR_commander)
     print("Running FronTEAR Commander...")
 
