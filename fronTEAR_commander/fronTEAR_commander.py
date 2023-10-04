@@ -60,6 +60,13 @@ class FronTEARCommander(Node):
                             10)
         self.costmap
 
+        self.occupancyGrid = self.create_subscription(
+            OccupancyGrid,
+            "/map",
+            self.occupancy_grid_callback,
+            10)
+        self.occupancyGrid
+
         # Incremental updates on costmap
         self.costmap_updates = self.create_subscription(
                                     OccupancyGridUpdate,
@@ -112,9 +119,15 @@ class FronTEARCommander(Node):
         self.is_complete = False
         self.pathToPose = 0
         self.same_position_count = 0
+        self.map_data = None
+        self.map_info = None
 
         # TODO: Add init code here...
 
+    def occupancy_grid_callback(self, msg):
+        self.map_info = msg.info
+        # self.map_data = np.array(msg.data).reshape((msg.info.height, msg.info.width))
+        self.map_data = msg.data
 
     def get_result(self):
         result = self.nav.getResult()
@@ -188,7 +201,7 @@ class FronTEARCommander(Node):
         waypoints = self.get_frontier_poses()
         while not waypoints.empty():
             best_move = waypoints.get()
-            if best_move[0] < 50:
+            if best_move[0] < 50 or best_move[0] > 230:
                 continue
 
             # 60 x 60 grid so (30, 30) is centre
@@ -203,14 +216,19 @@ class FronTEARCommander(Node):
             print(f"New: ({x}, {y})")
 
             # Move on to next best waypoint if already explored
-            threshold = [(tx, ty) for tx in (x - 0.1, x, x + 0.1) for ty in (y - 0.1, y, y + 0.1)]
+            # threshold = [(tx, ty) for tx in (x - 0.1, x, x + 0.1) for ty in (y - 0.1, y, y + 0.1)]
+            x_r = [round(x + xr/10, 1) for xr in range(-2, 2, 1)]
+            y_r = [round(y + yr/10, 1) for yr in range(-2, 2, 1)]
+            threshold = [(tx, ty) for tx in (x_r) for ty in y_r]
+
             c = 0
             for el in threshold:
                 if el in self.explored_waypoints:
-                    self.explored_waypoints.add((x, y))
-                    print("Explored waypoints: ", self.explored_waypoints)
+                    for t in threshold:
+                        self.explored_waypoints.add(t)
+
                     c += 1
-                    continue
+                    break
 
             if c != 0:
                 print(f"Count: {c}")
@@ -224,8 +242,8 @@ class FronTEARCommander(Node):
 
         # Only get here if all waypoints have been pursued and explored
         # Return to original position
-        self.is_complete = True
         print("Queue is empty so returning to original pose")
+        self.is_complete = True
         return self.initial_pose
 
 
@@ -317,12 +335,17 @@ class FronTEARCommander(Node):
                 if self.current_position == 0:
                     pass
                 new_pose = self.get_best_waypoint()
+                # if round(new_pose.pose.position.x, 1) == round(self.initial_pose.pose.position.x, 1):
+                #     if round(new_pose.pose.position.y, 1) == round(self.initial_pose.pose.position.y, 1):
+                #         self.is_complete = True
+
                 print(f"Sending pose {new_pose}")
                 self.send_goal(new_pose)
         return
 
     def send_goal(self, goal: PoseStamped):
         self.goal_counter += 1
+        print("Goal counter: ", self.goal_counter)
         self.publisher_.publish(goal)
 
         while not self.nav.isTaskComplete():
@@ -344,12 +367,31 @@ class FronTEARCommander(Node):
         print("costmap updates callback")
         return
 
-
 def main(args=None):
+    print("Running FronTEAR Commander...")
     rclpy.init(args=args)
     fronTEAR_commander = FronTEARCommander()
-    rclpy.spin(fronTEAR_commander)
-    print("Running FronTEAR Commander...")
+
+    try:
+        while rclpy.ok():
+            # Your flag-checking logic here
+            if fronTEAR_commander.is_complete:
+                break  # Exit the loop to stop the node
+
+            rclpy.spin_once(fronTEAR_commander)
+
+    except KeyboardInterrupt:
+        pass
+
+    rclpy.shutdown()
+
+# def main(args=None):
+#     print("Running FronTEAR Commander...")
+#     rclpy.init(args=args)
+#     fronTEAR_commander = FronTEARCommander()
+#     if fronTEAR_commander.is_complete:
+#         rclpy.shutdown()
+#     rclpy.spin(fronTEAR_commander)
 
 
 if __name__ == '__main__':
