@@ -348,19 +348,19 @@ class WaypointFollowerTest(Node):
 
         self.tree = False
 
-        self.nav = BasicNavigator()
+        # self.nav = BasicNavigator()
 
-    def get_result(self):
-        result = self.nav.getResult()
-        if result == TaskResult.SUCCEEDED:
-            print('Goal succeeded!')
-            return 1
-        elif result == TaskResult.CANCELED:
-            print('Goal was canceled!')
-            return -1
-        elif result == TaskResult.FAILED:
-            print('Goal failed!')
-            return 0
+    # def get_result(self):
+    #     result = self.nav.getResult()
+    #     if result == TaskResult.SUCCEEDED:
+    #         print('Goal succeeded!')
+    #         return 1
+    #     elif result == TaskResult.CANCELED:
+    #         print('Goal was canceled!')
+    #         return -1
+    #     elif result == TaskResult.FAILED:
+    #         print('Goal failed!')
+    #         return 0
 
     def bt_log_callback(self, msg:BehaviorTreeLog):
         for event in msg.event_log:
@@ -386,11 +386,11 @@ class WaypointFollowerTest(Node):
       
         if self.tree:
 
-            recovery = RecoveryStrategy()
-            print(self.get_result())
-            if self.get_result() == -1 or self.get_result() == 0:
-                print ("recovery")
-                recovery.run_recovery()
+            # # recovery = RecoveryStrategy()
+            # # print(self.get_result())
+            # # if self.get_result() == -1 or self.get_result() == 0:
+            # #     print ("recovery")
+            # #     recovery.run_recovery()
 
             # Get the current robot's position
             current_position = self.currentPose.position
