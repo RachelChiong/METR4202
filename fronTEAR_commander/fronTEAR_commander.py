@@ -25,12 +25,16 @@ from nav2_msgs.msg import Costmap
 from nav_msgs.msg  import OccupancyGrid
 from nav_msgs.msg import Odometry
 from nav2_msgs.msg import BehaviorTreeLog
+from nav2_simple_commander.robot_navigator import *
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool
 
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
+from rclpy.time import Duration 
 
 from enum import Enum
 
@@ -38,8 +42,55 @@ import numpy as np
 
 import math
 
-OCC_THRESHOLD = 10
-MIN_FRONTIER_SIZE = 5
+OCC_THRESHOLD = 50
+MIN_FRONTIER_SIZE = 2
+
+class RecoveryStrategy:
+    def __init__(self):
+        self.node = rclpy.create_node('recovery_strategy')
+        self.publisher = self.node.create_publisher(Twist, '/cmd_vel', 10)
+        self.stopped = False
+
+        # Define the recovery behavior
+        self.backup_duration = 2.0  # Duration to back up in seconds
+        self.rotation_duration = 2.0  # Duration to rotate in seconds
+
+    def stop_robot(self):
+        self.stopped = True
+        self.publisher.publish(Twist())
+
+    def backup_and_rotate(self):
+        # Back up the robot
+        twist = Twist()
+        twist.linear.x = -0.2  # Adjust linear velocity as needed
+        self.publisher.publish(twist)
+       
+        # Calculate the target time for stopping
+        stop_time = self.node.get_clock().now() + Duration(seconds=self.backup_duration)
+        while self.node.get_clock().now() < stop_time:
+            pass
+
+        # Stop the robot
+        self.stop_robot()
+
+        # Rotate the robot
+        twist.angular.z = 0.2  # Adjust angular velocity as needed
+        self.publisher.publish(twist)
+
+        # Calculate the target time for stopping
+        stop_time = self.node.get_clock().now() + Duration(seconds=self.rotation_duration)
+        while self.node.get_clock().now() < stop_time:
+            pass
+
+        # Stop the robot
+        self.stop_robot()
+
+
+    def run_recovery(self):
+        self.node.get_logger().info('Starting recovery strategy')
+        self.backup_and_rotate()
+        self.node.get_logger().info('Recovery strategy complete')
+
 
 class Costmap2d():
     class CostValues(Enum):
@@ -256,7 +307,7 @@ class WaypointFollowerTest(Node):
     def __init__(self):
         super().__init__(node_name='nav2_waypoint_tester', namespace='')
 
-
+        self.visitedf = []
         self.waypoints = None
         self.readyToMove = True
         self.currentPose = None
@@ -297,9 +348,24 @@ class WaypointFollowerTest(Node):
 
         self.tree = False
 
+        self.nav = BasicNavigator()
+
+    def get_result(self):
+        result = self.nav.getResult()
+        if result == TaskResult.SUCCEEDED:
+            print('Goal succeeded!')
+            return 1
+        elif result == TaskResult.CANCELED:
+            print('Goal was canceled!')
+            return -1
+        elif result == TaskResult.FAILED:
+            print('Goal failed!')
+            return 0
+
     def bt_log_callback(self, msg:BehaviorTreeLog):
-        print("hello")
         for event in msg.event_log:
+            print(event.node_name)
+            print(event.current_status)
             if event.node_name == 'NavigateRecovery' and \
                 event.current_status == 'IDLE':
                 self.tree = True
@@ -311,10 +377,28 @@ class WaypointFollowerTest(Node):
     def occupancyGridCallback(self, msg):
         self.costmap = OccupancyGrid2d(msg)
 
+    def is_close_to_waypoint(self, position, waypoint, tolerance):
+    # Check if the current position is close to the waypoint within the specified tolerance
+        distance = math.sqrt((position.x - waypoint.pose.position.x)**2 + (position.y - waypoint.pose.position.y)**2)
+        return distance < tolerance
+
     def moveToFrontiers(self):
       
         if self.tree:
-            frontiers = getFrontier(self.currentPose, self.costmap, self.get_logger())
+
+            recovery = RecoveryStrategy()
+            print(self.get_result())
+            if self.get_result() == -1 or self.get_result() == 0:
+                print ("recovery")
+                recovery.run_recovery()
+
+            # Get the current robot's position
+            current_position = self.currentPose.position
+
+            # Check if the current waypoint is already set and if it's close to the current position   
+
+            frontier = getFrontier(self.currentPose, self.costmap, self.get_logger())
+            frontiers = [x for x in frontier if x not in self.visitedf]
 
             if len(frontiers) == 0:
                 self.info_msg('No More Frontiers')
@@ -322,31 +406,44 @@ class WaypointFollowerTest(Node):
 
             location = None
             largestDist = 0
+            largestDist2 = 0
+            all_loc = []
+
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
+                all_loc.append(dist)
                 if  dist > largestDist:
                     largestDist = dist
                     location = [f] 
 
-            #worldFrontiers = [self.costmap.mapToWorld(f[0], f[1]) for f in frontiers]
+
+
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
 
-            self.info_msg('Sending goal request...')
+            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=1):
+                self.info_msg('Already at or close to the current waypoint')
+                index = all_loc.index(max(all_loc))
+                all_loc.pop(index)
+                frontiers.pop(index)
+                counter = -1
+                for loc in all_loc:
+                    counter +=1  
+                    if loc > largestDist2:
+                        largestDist2 = loc
+                        location = [frontiers[counter]]
+                        self.info_msg('finding new waypoint...')
+                self.info_msg('setting new waypoint')
+                self.setWaypoints(location)        
 
-            # self.pose.publish(self.waypoints[0])
-            # self.waypoints.pop()
-            
-            
-        
-            print("hi")
+            self.visitedf.append(location[0])
+
+            self.info_msg('Sending goal request...')
+    
             self.pose.publish(self.waypoints[0])
             self.waypoint_counter += 1
-            print("hi2")
 
             self.info_msg('Goal accepted')
-
-       # self.moveToFrontiers()
         
 
     def costmapCallback(self, msg):
@@ -388,7 +485,7 @@ class WaypointFollowerTest(Node):
             msg.header.frame_id = 'map'
             msg.pose.position.x = wp[0]
             msg.pose.position.y = wp[1]
-            msg.pose.orientation.w = 1.0
+           # msg.pose.orientation.w = 1.0
             self.waypoints.append(msg)
         
 
