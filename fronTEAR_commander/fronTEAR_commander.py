@@ -73,18 +73,6 @@ class RecoveryStrategy:
         # Stop the robot
         self.stop_robot()
 
-        # Rotate the robot
-        twist.angular.z = 0.2  # Adjust angular velocity as needed
-        self.publisher.publish(twist)
-
-        # Calculate the target time for stopping
-        stop_time = self.node.get_clock().now() + Duration(seconds=self.rotation_duration)
-        while self.node.get_clock().now() < stop_time:
-            pass
-
-        # Stop the robot
-        self.stop_robot()
-
 
     def run_recovery(self):
         self.node.get_logger().info('Starting recovery strategy')
