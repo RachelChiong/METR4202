@@ -1,42 +1,73 @@
-"""fronTEAR_commander.py
+#! /usr/bin/env python3
 
-Main file which compiles the frontier exploration modules to be deployed as a
-ROS2 package.
-
-(Note: adapted from the waypoint_cycler.py implementation, so some artifacts
-       may remain from that.)
-"""
-
-import rclpy
-from rclpy.node import Node
-from nav2_msgs.msg import *
-from nav_msgs.msg import OccupancyGrid, Odometry
-from map_msgs.msg import OccupancyGridUpdate
-from visualization_msgs.msg import MarkerArray
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+import sys
+import time
 
 from action_msgs.msg import GoalStatus
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav2_msgs.action import FollowWaypoints
-from nav2_msgs.srv import ManageLifecycleNodes, GetCostmap
-
-# External packages (requirements)
+from nav2_msgs.srv import ManageLifecycleNodes
+from nav2_msgs.srv import GetCostmap
+from nav2_msgs.msg import Costmap
+from nav_msgs.msg  import OccupancyGrid
+from nav_msgs.msg import Odometry
+from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
-from builtin_interfaces.msg import Duration
-import tf_transformations as tft
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool
+
+import rclpy
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
+from rclpy.qos import QoSProfile
+from rclpy.time import Duration
+
+from enum import Enum
+
 import numpy as np
+
 import math
-from queue import *
 
-# Custom packages
-import fronTEAR_commander.nav2_waypoints as nav2_waypoints
+OCC_THRESHOLD = 50
+MIN_FRONTIER_SIZE = 2
 
-OCC_THRESHOLD = 10
-MIN_FRONTIER_SIZE = 5
+class RecoveryStrategy:
+    def __init__(self):
+        self.node = rclpy.create_node('recovery_strategy')
+        self.publisher = self.node.create_publisher(Twist, '/cmd_vel', 10)
+        self.stopped = False
+
+        # Define the recovery behavior
+        self.backup_duration = 2.0  # Duration to back up in seconds
+        self.rotation_duration = 2.0  # Duration to rotate in seconds
+
+    def stop_robot(self):
+        self.stopped = True
+        self.publisher.publish(Twist())
+
+    def backup_and_rotate(self):
+        # Back up the robot
+        twist = Twist()
+        twist.linear.x = -0.2  # Adjust linear velocity as needed
+        self.publisher.publish(twist)
+
+        # Calculate the target time for stopping
+        stop_time = self.node.get_clock().now() + Duration(seconds=self.backup_duration)
+        while self.node.get_clock().now() < stop_time:
+            pass
+
+        # Stop the robot
+        self.stop_robot()
+
+
+    def run_recovery(self):
+        self.node.get_logger().info('Starting recovery strategy')
+        self.backup_and_rotate()
+        self.node.get_logger().info('Recovery strategy complete')
+
 
 class Costmap2d():
-    """
-    @reference: https://github.com/SeanReg/nav2_wavefront_frontier_exploration.git
-    """
     class CostValues(Enum):
         FreeSpace = 0
         InscribedInflated = 253
@@ -62,9 +93,6 @@ class Costmap2d():
         return my * self.map.metadata.size_x + mx
 
 class OccupancyGrid2d():
-    """
-    @reference: https://github.com/SeanReg/nav2_wavefront_frontier_exploration.git
-    """
     class CostValues(Enum):
         FreeSpace = 0
         InscribedInflated = 100
@@ -107,20 +135,7 @@ class OccupancyGrid2d():
     def __getIndex(self, mx, my):
         return my * self.map.info.width + mx
 
-
-class FrontierPoint():
-    """
-    Store the frontier coordinate an its classification. Used in FrontierCache.
-    """
-    def __init__(self, x, y):
-        self.classification = 0
-        self.mapX = x
-        self.mapY = y
-
-
 class FrontierCache():
-    """
-    """
     cache = {}
 
     def getPoint(self, x, y):
@@ -169,7 +184,7 @@ def findFree(mx, my, costmap):
 
     return (mx, my)
 
-def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d):
+def getFrontier(pose, costmap, logger):
     fCache = FrontierCache()
 
     fCache.clear()
@@ -230,10 +245,7 @@ def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d):
     return frontiers
 
 
-def getNeighbors(point, costmap, fCache) -> list:
-    """
-    Get adjacent points
-    """
+def getNeighbors(point, costmap, fCache):
     neighbors = []
 
     for x in range(point.mapX - 1, point.mapX + 2):
@@ -243,7 +255,7 @@ def getNeighbors(point, costmap, fCache) -> list:
 
     return neighbors
 
-def isFrontierPoint(point: FrontierPoint, costmap: Costmap, fCache: FrontierCache) -> bool:
+def isFrontierPoint(point, costmap, fCache):
     if costmap.getCost(point.mapX, point.mapY) != OccupancyGrid2d.CostValues.NoInformation.value:
         return False
 
@@ -265,279 +277,165 @@ class PointClassification(Enum):
     FrontierOpen = 4
     FrontierClosed = 8
 
+class WaypointFollowerTest(Node):
 
-def quaternion_to_euler(quaternion):
-    import math
-    x, y, z, w = quaternion.x, quaternion.y, quaternion.z, quaternion.w
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    roll_x = math.atan2(t0, t1)
-
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    pitch_y = math.asin(t2)
-
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    yaw_z = math.atan2(t3, t4)
-
-    return roll_x, pitch_y, yaw_z
-
-
-class FronTEARCommander(Node):
     def __init__(self):
-        super().__init__('fronTEAR_commander')
+        super().__init__(node_name='nav2_waypoint_tester', namespace='')
 
-        ### Subscriptions ###
-        self.subscription = self.create_subscription(
-                                BehaviorTreeLog,
-                                'behavior_tree_log',
-                                self.bt_log_callback,
-                                10)
-        self.subscription
-
-        # Map which will be used for exploration planning
-        # Higher cost - obstacles/walls, lower cost - free space
-        self.costmap_sub = self.create_subscription(
-                            Costmap,
-                            "costmap",
-                            self.costmap_callback,
-                            10)
-        self.costmap_sub
-
-        # Incremental updates on costmap
-        self.costmap_updates_sub = self.create_subscription(
-                                    OccupancyGridUpdate,
-                                    "costmap_updates",
-                                    self.costmap_updates_callback,
-                                    10)
-        self.costmap_updates_sub
-
-        # Gets Robot's current position
-        self.odom_sub = self.create_subscription(
-            Odometry,
-            '/odom',
-            self.odom_callback,
-            10)
-
-        ### Publishers ###
-        # Visualization of frontiers considered by exploring algorithm
-        self.frontier = self.create_publisher(
-                            MarkerArray,
-                            "frontier",
-                            10)
-
-        # Publish waypoints
-        self.publisher_ = self.create_publisher(
-            PoseStamped,
-            'goal_pose',
-            10)
-
-
-        self.nav = BasicNavigator()
-        self.nav.clearAllCostmaps()
-
-        self.initial_pose = self.initialise_pose(-1.0, -0.5, 0.0, 0.0, 0.0)
-        self.nav.setInitialPose(self.initial_pose)
-
-        self.goal_counter = 0
-        self.bt_status = 'IDLE'
-
-        self.goal1 = self.initialise_pose(1.5, -1.0, 0.0, 0.0, 1.57)
-        self.goal2 = self.initialise_pose(-1.5, 1.0, 0.0, 0.0, -1.57)
-        self.nav.goToPose(self.initial_pose)
-
-        # Store explored areas
-        self.explored_waypoints = set()
-        self.failed_waypoints = set()
-
-        # Initialised properly in odometry callback
-        self.current_position = 0
-        self.current_orientation = 0
-        self.is_complete = False
-        self.pathToPose = 0
-        self.same_position_count = 0
-
+        self.visitedf = []
         self.waypoints = None
         self.readyToMove = True
         self.currentPose = None
         self.lastWaypoint = None
+        self.waypoint_counter = 0
 
-        self.action_client = ActionClient(self, FollowWaypoints, 'FollowWaypoints')
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
                                                       'initialpose', 10)
 
         self.costmapClient = self.create_client(GetCostmap, '/global_costmap/get_costmap')
+        while not self.costmapClient.wait_for_service(timeout_sec=1.0):
+            self.info_msg('service not available, waiting again...')
+        self.initial_pose_received = False
+        self.goal_handle = None
 
-        self.costmapSub = self.create_subscription(OccupancyGrid(), '/map', self.occupancyGridCallback, 10)
+        pose_qos = QoSProfile(
+          durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+          reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_RELIABLE,
+          history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+          depth=1)
+
+        self.model_pose_sub = self.create_subscription(Odometry,
+                                                       '/odom', self.poseCallback, pose_qos)
+
+        # self.costmapSub = self.create_subscription(Costmap(), '/global_costmap/costmap_raw', self.costmapCallback, pose_qos)
+        self.costmapSub = self.create_subscription(OccupancyGrid(), '/map', self.occupancyGridCallback, pose_qos)
         self.costmap = None
-        # TODO: Add init code here...
+
+        self.pose = self.create_publisher(PoseStamped,'goal_pose',10)
+
+        self.subscription = self.create_subscription(
+            BehaviorTreeLog,
+            'behavior_tree_log',
+            self.bt_log_callback,
+            10)
+
+        self.get_logger().info('Running Waypoint Test')
+
+        self.tree = False
+
+        # self.nav = BasicNavigator()
+
+    # def get_result(self):
+    #     result = self.nav.getResult()
+    #     if result == TaskResult.SUCCEEDED:
+    #         print('Goal succeeded!')
+    #         return 1
+    #     elif result == TaskResult.CANCELED:
+    #         print('Goal was canceled!')
+    #         return -1
+    #     elif result == TaskResult.FAILED:
+    #         print('Goal failed!')
+    #         return 0
+
+    def bt_log_callback(self, msg:BehaviorTreeLog):
+        for event in msg.event_log:
+            if event.node_name == 'NavigateRecovery' and \
+                event.current_status == 'IDLE':
+                self.tree = True
+                self.moveToFrontiers()
+            else:
+                self.tree = False
+
 
     def occupancyGridCallback(self, msg):
         self.costmap = OccupancyGrid2d(msg)
-        print(f"Costmap size: {self.costmap.getSize()}, x {self.costmap.getSizeX()}, y {self.costmap.getSizeY()}")
 
-    def get_result(self):
-        result = self.nav.getResult()
-        if result == TaskResult.SUCCEEDED:
-            print('Goal succeeded!')
-        elif result == TaskResult.CANCELED:
-            print('Goal was canceled!')
-        elif result == TaskResult.FAILED:
-            print('Goal failed!')
+    def is_close_to_waypoint(self, position, waypoint, tolerance):
+    # Check if the current position is close to the waypoint within the specified tolerance
+        distance = math.sqrt((position.x - waypoint.pose.position.x)**2 + (position.y - waypoint.pose.position.y)**2)
+        return distance < tolerance
 
-    def get_frontier_poses(self) -> PriorityQueue:
-        """
-        Local costmap is 60 x 60 grid of 0.05 resolution tiles.\n
-        Identifies 8 spaces that the robot can go to and determines their costs
-        (lowest cost has most free space, etc.)
+    def moveToFrontiers(self):
 
-        @Returns: PriorityQueue with best move first
-        """
-        cm = self.nav.getLocalCostmap()
-        gm = self.nav.getGlobalCostmap()
-        print(f"Local costmap resolution: {cm.metadata.resolution}, x: {cm.metadata.size_x}, y: {cm.metadata.size_y} ")
-        print(f"Global costmap resolution: {gm.metadata.resolution}, x: {gm.metadata.size_x}, y: {gm.metadata.size_y} ")
+        if self.tree:
 
-        data = cm.data
-        queue = PriorityQueue()
+            # # recovery = RecoveryStrategy()
+            # # print(self.get_result())
+            # # if self.get_result() == -1 or self.get_result() == 0:
+            # #     print ("recovery")
+            # #     recovery.run_recovery()
 
-        # Get all possible frontier points
-        f = [(x, y) for x in range(5, cm.metadata.size_y - 5) for y in range(5, cm.metadata.size_x, 5)]
-        f += [(x, y) for x in range(5, cm.metadata.size_y, 5) for y in range (5, cm.metadata.size_x - 5)]
+            # Get the current robot's position
+            current_position = self.currentPose.position
 
-        for el in f:
-            # Get new centre point of the robot index
-            index = el[0] * cm.metadata.size_y + el[1]
+            # Check if the current waypoint is already set and if it's close to the current position
 
-            # Total cost
-            total = 0
-            count = 0
+            frontier = getFrontier(self.currentPose, self.costmap, self.get_logger())
+            frontiers = [x for x in frontier if x not in self.visitedf]
 
-            # Aggregate the cost of moving the robot to the new location,
-            # A 5 x 5 square around the robot since the radius of the bot is 0.22,
-            # and each square represents 0.05
-            for x in range(-5, 5):
-                for y in range(-5, 5):
-                    new_index = index + (x * cm.metadata.size_y) + y
-                    if new_index >= cm.metadata.size_y * cm.metadata.size_x:
-                        total += 255
-                    else:
-                        total += data[new_index]
-                    count += 1
+            if len(frontiers) == 0:
+                self.info_msg('No More Frontiers')
+                return
 
-            # Calculate the average cost of moving the robot to that location
-            avg_cost = total / count
-
-            queue.put((avg_cost, el))
-            # print(f"Cost: single point - {data[index]}, average region - {avg_cost}, {el}")
-
-        return queue
-
-
-    def get_best_waypoint(self) -> PoseStamped:
-        """
-        Get the best waypoint from the priority queue of frontier poses
-
-        Checks for:
-        - too small value (most likely outside of the world)
-        - location has already been searched
-
-        @Returns the best
-        """
-        waypoints = self.get_frontier_poses()
-        if self.currentPose != None and self.costmap != None:
-            frontiers = getFrontier(self.currentPose, self.costmap)
-            print("Frontier: ", frontiers)
             location = None
             largestDist = 0
+            largestDist2 = 0
+            all_loc = []
 
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
-                print(self.currentPose.position.x, self.currentPose.position.y)
-                if (round(f[0], 1),round(f[1],1)) in self.explored_waypoints:
-                    continue
+                all_loc.append(dist)
                 if  dist > largestDist:
                     largestDist = dist
-                    location = f
-            pose = PoseStamped()
-            pose.pose.position.x = location[0]
-            pose.pose.position.y = location[1]
-            pose.pose.orientation.w = 1.0
-
-            self.explored_waypoints.add((round(location[0], 1), round(location[1], 1)))
-            return pose
+                    location = [f]
 
 
-        while not waypoints.empty():
-            best_move = waypoints.get()
-            if best_move[0] < 50:
-                continue
+            self.info_msg(f'World points {location}')
+            self.setWaypoints(location)
 
-            # 60 x 60 grid so (30, 30) is centre
-            x_diff = (best_move[1][0]) * 0.05
-            y_diff = (best_move[1][1]) * 0.05
+            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=1):
+                self.info_msg('Already at or close to the current waypoint')
+                index = all_loc.index(max(all_loc))
+                all_loc.pop(index)
+                frontiers.pop(index)
+                counter = -1
+                for loc in all_loc:
+                    counter +=1
+                    if loc > largestDist2:
+                        largestDist2 = loc
+                        location = [frontiers[counter]]
+                        self.info_msg('finding new waypoint...')
+                self.info_msg('setting new waypoint')
+                self.setWaypoints(location)
 
-            # Round to single decimal place of precision to prevent repeat
-            # movements
-            x = round(self.current_position.x + x_diff, 1)
-            y = round(self.current_position.y + y_diff, 1)
-            print(f"Current: ({self.current_position.x}, {self.current_position.y})")
-            print(f"New: ({x}, {y})")
+            self.visitedf.append(location[0])
 
-            # Move on to next best waypoint if already explored
-            threshold = [(tx, ty) for tx in (x - 0.1, x, x + 0.1) for ty in (y - 0.1, y, y + 0.1)]
-            c = 0
-            for el in threshold:
-                if el in self.explored_waypoints:
-                    self.explored_waypoints.add((x, y))
-                    print("Explored waypoints: ", self.explored_waypoints)
-                    c += 1
-                    continue
+            self.info_msg('Sending goal request...')
 
-            if c != 0:
-                print(f"Count: {c}")
-                continue
+            self.pose.publish(self.waypoints[0])
+            self.waypoint_counter += 1
 
-            self.explored_waypoints.add((x, y))
-
-            # Don't need to determine roll, pitch, yaw because the robot's A*
-            # Will figure that out itself
-            return self.initialise_pose(x_diff, y_diff, 0, 0, 0)
-
-        # Only get here if all waypoints have been pursued and explored
-        # Return to original position
-        self.is_complete = True
-        print("Queue is empty so returning to original pose")
-        return self.initial_pose
+            self.info_msg('Goal accepted')
 
 
-    def initialise_pose(self, x_pos: float, y_pos: float, roll: float, pitch: float, yaw: float) -> PoseStamped:
-        """
-        Initialises the Pose stamp with given parameters.
-        """
-        # you can use the map displayed in RViz to estimate the position (the grid is 1m x 1m)
-        goal = PoseStamped()
-        goal.header.frame_id = 'map'
-        goal.header.stamp = self.nav.get_clock().now().to_msg()
+    def costmapCallback(self, msg):
+        self.costmap = Costmap2d(msg)
 
-        goal.pose.position.x = x_pos
-        goal.pose.position.y = y_pos
+        unknowns = 0
+        for x in range(0, self.costmap.getSizeX()):
+            for y in range(0, self.costmap.getSizeY()):
+                if self.costmap.getCost(x, y) == 255:
+                    unknowns = unknowns + 1
+        self.get_logger().info(f'Unknowns {unknowns}')
+        self.get_logger().info(f'Got Costmap {len(getFrontier(None, self.costmap, self.get_logger()))}')
 
-        qx, qy, qz, qw = tft.quaternion_from_euler(roll, pitch, yaw)
-        goal.pose.orientation.x = qx
-        goal.pose.orientation.y = qy
-        goal.pose.orientation.z = qz
-        goal.pose.orientation.w = qw
+    def dumpCostmap(self):
+        costmapReq = GetCostmap.Request()
+        self.get_logger().info('Requesting Costmap')
+        costmap = self.costmapClient.call(costmapReq)
+        self.get_logger().info(f'costmap resolution {costmap.specs.resolution}')
 
-        return goal
-
-    def setInitialPose(self, pose: list):
-        """
-        Params
-        Pose (x, y): the initial pose to set to give x, y values
-        """
+    def setInitialPose(self, pose):
         self.init_pose = PoseWithCovarianceStamped()
         self.init_pose.pose.pose.position.x = pose[0]
         self.init_pose.pose.pose.position.y = pose[1]
@@ -546,128 +444,62 @@ class FronTEARCommander(Node):
         self.publishInitialPose()
         time.sleep(5)
 
+    def poseCallback(self, msg):
+        self.info_msg('Received amcl_pose')
+        self.currentPose = msg.pose.pose
+        self.initial_pose_received = True
+
+
+    def setWaypoints(self, waypoints):
+        self.waypoints = []
+        for wp in waypoints:
+            msg = PoseStamped()
+            msg.header.frame_id = 'map'
+            msg.pose.position.x = wp[0]
+            msg.pose.position.y = wp[1]
+           # msg.pose.orientation.w = 1.0
+            self.waypoints.append(msg)
+
     def publishInitialPose(self):
         self.initial_pose_pub.publish(self.init_pose)
 
-    def odom_callback(self, msg: Odometry):
-        self.currentPose = msg.pose.pose
 
-        new_position = msg.pose.pose.position
-        new_orientation = msg.pose.pose.orientation
+    def info_msg(self, msg: str):
+        self.get_logger().info(msg)
 
-        isNew = False
+    def warn_msg(self, msg: str):
+        self.get_logger().warn(msg)
 
-        if self.current_position == 0:
-            self.current_position = new_position
-            self.current_orientation = new_orientation
-
-        # Only output odom value when bot is stationary
-        if self.bt_status != 'IDLE':
-            return
-        if abs(abs(new_position.x) - abs(self.current_position.x)) > 0.1 and \
-            abs(abs(new_position.y) - abs(self.current_position.y)) > 0.1:
-            isNew = True
-            self.same_position_count = 0
-        #     rotate_pose = self.initialise_pose(0.0, 0.0, 0.0, 0.0, 1.0)
-        #     print("Sent new rotation pose")
-        #     self.send_goal(rotate_pose)
-        #     if self.nav.isTaskComplete():
-        #         new_pose = self.get_best_waypoint()
-        #         self.send_goal(new_pose)
-        else:
-            self.same_position_count += 1
+    def error_msg(self, msg: str):
+        self.get_logger().error(msg)
 
 
-        self.current_position = new_position
-        self.current_orientation = new_orientation
+def main(argv=sys.argv[1:]):
+    rclpy.init()
 
-        if not isNew and self.same_position_count > 4:
-            #new_pose = self.get_best_waypoint()
-            #self.send_goal(new_pose)
-            self.same_position_count = 0
-            return
+    wps = [[-0.52, -0.54], [0.58, -0.55], [0.58, 0.52]]
+    starting_pose = [-2.0, -0.5]
 
-        x = self.current_position.x
-        y = self.current_position.y
-        z = self.current_position.z
+    test = WaypointFollowerTest()
+    #test.dumpCostmap()
+    test.setWaypoints(wps)
 
-        self.explored_waypoints.add((round(x, 1), round(y, 1)))
+    retry_count = 0
+    retries = 2
+    while not test.initial_pose_received and retry_count <= retries:
+        retry_count += 1
+        test.info_msg('Setting initial pose')
+        test.setInitialPose(starting_pose)
+        test.info_msg('Waiting for amcl_pose to be received')
+        rclpy.spin_once(test, timeout_sec=1.0)  # wait for poseCallback
 
-        roll, pitch, yaw = quaternion_to_euler(self.current_orientation)
+    while test.costmap == None:
+        test.info_msg('Getting initial map')
+        rclpy.spin_once(test, timeout_sec=1.0)
 
-        print(f"Robot Position (x, y, z): ({round(x, 3)}, {round(y, 3)}, {round(z, 3)})")
-        print(f"Robot Orientation (roll, pitch, yaw): ({round(roll, 3)}, {round(pitch, 3)}, {round(yaw, 3)})")
-        return
+    #test.moveToFrontiers()
 
-
-    def bt_log_callback(self, msg: BehaviorTreeLog):
-        """
-        Behaviour Tree Log Callback
-
-        Whenever an action is completed, this is called to complete the next
-        action.
-        """
-        for event in msg.event_log:
-           self.bt_status = event.current_status
-           # Wait for first odom reading
-
-           if event.node_name == 'NavigateRecovery' and \
-               event.current_status == 'IDLE':
-                # Get next node to explore and send robot there
-                if self.current_position == 0:
-                    pass
-                # # new_pose = self.get_best_waypoint()
-                # # self.send_goal(new_pose)
-        return
-
-    def send_goal(self, goal: PoseStamped):
-        self.goal_counter += 1
-        print(f"Publishing ({goal.pose.position.x}, {goal.pose.position.y})")
-        self.publisher_.publish(goal)
-        # self.nav.goToPose(goal)
-        while not self.nav.isTaskComplete():
-            feedback = self.nav.getFeedback()
-        self.get_result()
-        # if self.nav.getResult() == TaskResult.FAILED:
-        #     rotate_pose = self.initialise_pose(0.0, 0.0, 0.0, 0.0, 1.0)
-        #     print("Sent new rotation pose")
-        #     self.publisher_.publish(rotate_pose)
-
-        if self.is_complete:
-            print("Mapping is complete.")
-
-    def costmap_callback(self, msg: Costmap):
-        print("Costmap: ", msg.data)
-        return
-
-    def costmap_updates_callback(self):
-        print("costmap updates callback")
-        return
-
-
-def main(args=None):
-    rclpy.init(args=args)
-    fronTEAR_commander = FronTEARCommander()
-    fronTEAR_commander.setInitialPose([-2.0, -0.5])
-    rclpy.spin_once(fronTEAR_commander, timeout_sec=1.0)
-
-    while fronTEAR_commander.costmap == None:
-        rclpy.spin_once(fronTEAR_commander, timeout_sec=1.0)
-
-    while True:
-        pose = fronTEAR_commander.get_best_waypoint()
-        fronTEAR_commander.nav.goToPose(pose)
-        while not fronTEAR_commander.nav.isTaskComplete():
-            pass
-        print(fronTEAR_commander.nav.getResult())
-        #frontiers = getFrontier(fronTEAR_commander.currentPose, fronTEAR_commander.map)
-    # pose = fronTEAR_commander.get_best_waypoint()
-    # while pose is not None:
-    #     fronTEAR_commander.nav.goToPose(pose)
-    #     pose = fronTEAR_commander.get_best_waypoint()
-    rclpy.spin(fronTEAR_commander)
-    print("Running FronTEAR Commander...")
-
+    rclpy.spin(test)
 
 if __name__ == '__main__':
     main()
