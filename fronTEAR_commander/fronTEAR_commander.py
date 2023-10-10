@@ -15,6 +15,7 @@ from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
+import statistics
 
 import rclpy
 from rclpy.action import ActionClient
@@ -392,13 +393,16 @@ class WaypointFollowerTest(Node):
             largestDist = 0
             largestDist2 = 0
             all_loc = []
-
+            
 
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
                 all_loc.append(dist)
                 
-            location = [frontiers[0]]    
+            med_value = statistics.median(all_loc)
+            closest_el = min(all_loc, key=lambda x: abs(x - med_value))
+            index = all_loc.index(closest_el)
+            location = [frontiers[index]]    
 
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
