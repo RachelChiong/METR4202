@@ -30,7 +30,7 @@ import numpy as np
 import math
 
 OCC_THRESHOLD = 50
-MIN_FRONTIER_SIZE = 5
+MIN_FRONTIER_SIZE = 30
 
 class RecoveryStrategy:
     def __init__(self):
@@ -367,7 +367,7 @@ class WaypointFollowerTest(Node):
 
     def moveToFrontiers(self):
       
-        if self.tree:
+        if self.tree: 
 
             # # recovery = RecoveryStrategy()
             # # print(self.get_result())
@@ -381,6 +381,7 @@ class WaypointFollowerTest(Node):
             # Check if the current waypoint is already set and if it's close to the current position   
 
             frontiers = getFrontier(self.currentPose, self.costmap, self.get_logger())
+            
             #frontiers = [x for x in frontier if x not in self.visitedf]
 
             if len(frontiers) == 0:
@@ -392,14 +393,12 @@ class WaypointFollowerTest(Node):
             largestDist2 = 0
             all_loc = []
 
+
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
                 all_loc.append(dist)
-                # if  dist > largestDist:
-                #     largestDist = dist
-                location = [f] 
-                # if dist == min(all_loc):
-                #     location = [f]
+                
+            location = [frontiers[0]]    
 
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
@@ -412,7 +411,7 @@ class WaypointFollowerTest(Node):
                 counter = -1
                 for loc in all_loc:
                     counter +=1  
-                    if dist > largestDist:
+                    if dist > largestDist2:
                         location = [frontiers[counter]]
                         self.info_msg('finding new waypoint...')
                 self.info_msg('setting new waypoint')
@@ -451,17 +450,17 @@ class WaypointFollowerTest(Node):
         self.init_pose.pose.pose.position.y = pose[1]
         self.init_pose.header.frame_id = 'map'
         self.currentPose = self.init_pose.pose.pose
-        self.publishInitialPose()
-        time.sleep(5)
+        #self.publishInitialPose()
+        #time.sleep(5)
 
-        # self.init_pose = PoseStamped()
-        # self.init_pose.pose.position.x = pose[0]
-        # self.init_pose.pose.position.y = pose[1]
-        # self.init_pose.header.frame_id = 'map'
-        # self.currentPose = self.init_pose.pose
-        # self.publishInitialPose()
-        # print("HII")
-        # time.sleep(5)
+        self.init_pose1 = PoseStamped()
+        self.init_pose1.pose.position.x = pose[0]
+        self.init_pose1.pose.position.y = pose[1]
+        self.init_pose1.header.frame_id = 'map'
+        self.currentPose = self.init_pose1.pose
+        self.publishInitialPose()
+        self.pose.publish(self.init_pose1)
+        time.sleep(5)
 
     def poseCallback(self, msg):
       #  self.info_msg('Received amcl_pose')
