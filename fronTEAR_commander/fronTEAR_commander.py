@@ -409,15 +409,12 @@ class WaypointFollowerTest(Node):
 
             if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=1):
                 self.info_msg('Already at or close to the current waypoint')
-                index = all_loc.index(min(all_loc))
                 all_loc.pop(index)
                 frontiers.pop(index)
-                counter = -1
-                for loc in all_loc:
-                    counter +=1  
-                    if dist > largestDist2:
-                        location = [frontiers[counter]]
-                        self.info_msg('finding new waypoint...')
+                closest_el = min(all_loc, key=lambda x: abs(x - med_value))
+                index = all_loc.index(closest_el)
+                location = [frontiers[index]] 
+                self.info_msg('finding new waypoint...')
                 self.info_msg('setting new waypoint')
                 self.setWaypoints(location)        
 
