@@ -2,6 +2,7 @@
 
 ## Resources
 - Inpsired greatly by this repo: https://github.com/abdulkadrtr/ROS2-FrontierBaseExplorationForAutonomousRobot/tree/main
+- And: https://github.com/SeanReg/nav2_wavefront_frontier_exploration.git
 - Unexplored area detection: http://wiki.ros.org/explore_lite
 
 ## Requirements
@@ -26,8 +27,7 @@ source /opt/ros/humble/setup.bash
 ## Open the world and SLAM
 ```
 ros2 launch turtlebot3_gazebo [WORLD_NAME].py
-ros2 launch slam_toolbox online_async_launch.py
-ros2 launch turtlebot3_navigation navigation2.launch.py
+ros2 launch turtlebot3_navigation2 navigation2.launch.py slam:=True
 ```
 ## Run the module
 ```
