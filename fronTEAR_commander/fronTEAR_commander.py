@@ -288,6 +288,7 @@ class WaypointFollowerTest(Node):
         self.currentPose = None
         self.lastWaypoint = None
         self.waypoint_counter = 0
+        self.is_complete = False
 
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
                                                       'initialpose', 10)
@@ -374,7 +375,8 @@ class WaypointFollowerTest(Node):
             frontiers = [x for x in frontier if x not in self.visitedf]
 
             if len(frontiers) == 0:
-                self.info_msg('No More Frontiers')
+                self.info_msg('No more frontiers, exploration complete')
+                self.is_complete = True
                 return
 
             location = None
@@ -388,7 +390,6 @@ class WaypointFollowerTest(Node):
                 if  dist > largestDist:
                     largestDist = dist
                     location = [f]
-
 
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
@@ -436,11 +437,13 @@ class WaypointFollowerTest(Node):
         self.get_logger().info(f'costmap resolution {costmap.specs.resolution}')
 
     def setInitialPose(self, pose):
-        self.init_pose = PoseWithCovarianceStamped()
-        self.init_pose.pose.pose.position.x = pose[0]
-        self.init_pose.pose.pose.position.y = pose[1]
-        self.init_pose.header.frame_id = 'map'
-        self.currentPose = self.init_pose.pose.pose
+        self.init_pose = PoseStamped()
+        self.init_pose.pose.position.x = pose[0]
+        self.init_pose.pose.position.y = pose[1]
+
+        # self.init_pose.header.frame_id = 'map'
+        self.init_pose.pose.orientation.z = 1.0
+        self.currentPose = self.init_pose.pose
         self.publishInitialPose()
         time.sleep(5)
 
@@ -461,7 +464,7 @@ class WaypointFollowerTest(Node):
             self.waypoints.append(msg)
 
     def publishInitialPose(self):
-        self.initial_pose_pub.publish(self.init_pose)
+        self.pose.publish(self.init_pose)
 
 
     def info_msg(self, msg: str):
@@ -477,12 +480,13 @@ class WaypointFollowerTest(Node):
 def main(argv=sys.argv[1:]):
     rclpy.init()
 
-    wps = [[-0.52, -0.54], [0.58, -0.55], [0.58, 0.52]]
-    starting_pose = [-2.0, -0.5]
+    # wps = [[-0.52, -0.54], [0.58, -0.55], [0.58, 0.52]]
+    starting_pose = [-1.0, -0.5]
 
     test = WaypointFollowerTest()
+    goal_counter = 0
     #test.dumpCostmap()
-    test.setWaypoints(wps)
+    #test.setWaypoints(wps)
 
     retry_count = 0
     retries = 2
@@ -490,6 +494,7 @@ def main(argv=sys.argv[1:]):
         retry_count += 1
         test.info_msg('Setting initial pose')
         test.setInitialPose(starting_pose)
+
         test.info_msg('Waiting for amcl_pose to be received')
         rclpy.spin_once(test, timeout_sec=1.0)  # wait for poseCallback
 
@@ -498,8 +503,22 @@ def main(argv=sys.argv[1:]):
         rclpy.spin_once(test, timeout_sec=1.0)
 
     #test.moveToFrontiers()
+    try:
+        while rclpy.ok():
+            # Your flag-checking logic here
+            if goal_counter < test.waypoint_counter:
+                test.info_msg(f"Goals submitted: {test.waypoint_counter}")
+                goal_counter += 1
 
-    rclpy.spin(test)
+            if test.is_complete:
+                break  # Exit the loop to stop the node
+            rclpy.spin_once(test)
+
+    except KeyboardInterrupt:
+        pass
+
+    rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
