@@ -11,6 +11,7 @@
 ## Build the package
 ```
 cd ~/turtlebot3_ws
+git clone <link>
 colcon build --symlink-install --packages-select fronTEAR_commander
 ```
 Then, source:
