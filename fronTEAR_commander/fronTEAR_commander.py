@@ -407,7 +407,7 @@ class WaypointFollowerTest(Node):
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
 
-            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=1):
+            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=0.1):
                 self.info_msg('Already at or close to the current waypoint')
                 all_loc.pop(index)
                 frontiers.pop(index)
