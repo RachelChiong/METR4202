@@ -407,18 +407,18 @@ class WaypointFollowerTest(Node):
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
 
-            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=0.1):
-                self.info_msg('Already at or close to the current waypoint')
-                all_loc.pop(index)
-                frontiers.pop(index)
-                closest_el = min(all_loc, key=lambda x: abs(x - med_value))
-                index = all_loc.index(closest_el)
-                location = [frontiers[index]] 
-                self.info_msg('finding new waypoint...')
-                self.info_msg('setting new waypoint')
-                self.setWaypoints(location)        
+            # if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=0.1):
+            #     self.info_msg('Already at or close to the current waypoint')
+            #     all_loc.pop(index)
+            #     frontiers.pop(index)
+            #     closest_el = min(all_loc, key=lambda x: abs(x - med_value))
+            #     index = all_loc.index(closest_el)
+            #     location = [frontiers[index]] 
+            #     self.info_msg('finding new waypoint...')
+            #     self.info_msg('setting new waypoint')
+            #     self.setWaypoints(location)        
 
-            self.visitedf.append(location[0])
+            # self.visitedf.append(location[0])
 
             self.info_msg('Sending goal request...')
     
