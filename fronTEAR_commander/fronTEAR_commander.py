@@ -15,6 +15,7 @@ from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
+import statistics
 
 import rclpy
 from rclpy.action import ActionClient
@@ -30,7 +31,7 @@ import numpy as np
 import math
 
 OCC_THRESHOLD = 50
-MIN_FRONTIER_SIZE = 2
+MIN_FRONTIER_SIZE = 30
 
 class RecoveryStrategy:
     def __init__(self):
@@ -121,8 +122,8 @@ class OccupancyGrid2d():
         return (wx, wy)
 
     def worldToMap(self, wx, wy):
-        if (wx < self.map.info.origin.position.x or wy < self.map.info.origin.position.y):
-            raise Exception("World coordinates out of bounds")
+        # if (wx < self.map.info.origin.position.x or wy < self.map.info.origin.position.y):
+        #     raise Exception("World coordinates out of bounds")
 
         mx = int((wx - self.map.info.origin.position.x) / self.map.info.resolution)
         my = int((wy - self.map.info.origin.position.y) / self.map.info.resolution)
@@ -175,6 +176,7 @@ def findFree(mx, my, costmap):
         loc = bfs.pop(0)
 
         if costmap.getCost(loc.mapX, loc.mapY) == OccupancyGrid2d.CostValues.FreeSpace.value:
+           # print("hello")
             return (loc.mapX, loc.mapY)
 
         for n in getNeighbors(loc, costmap, fCache):
@@ -185,16 +187,22 @@ def findFree(mx, my, costmap):
     return (mx, my)
 
 def getFrontier(pose, costmap, logger):
+
     fCache = FrontierCache()
 
     fCache.clear()
 
     mx, my = costmap.worldToMap(pose.position.x, pose.position.y)
-
+  #  print (mx)
+  #  print(my)
     freePoint = findFree(mx, my, costmap)
+   # print("free point" + str(freePoint))
     start = fCache.getPoint(freePoint[0], freePoint[1])
+   # print("start"+str(start))
     start.classification = PointClassification.MapOpen.value
+   # print(start.classification)
     mapPointQueue = [start]
+   # print("mapQ"+str(mapPointQueue))
 
     frontiers = []
 
@@ -207,6 +215,8 @@ def getFrontier(pose, costmap, logger):
         if isFrontierPoint(p, costmap, fCache):
             p.classification = p.classification | PointClassification.FrontierOpen.value
             frontierQueue = [p]
+           # print("yes")
+           # print(frontierQueue)
             newFrontier = []
 
             while len(frontierQueue) > 0:
@@ -242,6 +252,8 @@ def getFrontier(pose, costmap, logger):
 
         p.classification = p.classification | PointClassification.MapClosed.value
 
+   # print("frontiers" + str(frontiers))
+
     return frontiers
 
 
@@ -257,6 +269,8 @@ def getNeighbors(point, costmap, fCache):
 
 def isFrontierPoint(point, costmap, fCache):
     if costmap.getCost(point.mapX, point.mapY) != OccupancyGrid2d.CostValues.NoInformation.value:
+      #  print("grid"+str(OccupancyGrid2d.CostValues.NoInformation.value))
+      #  print("cost" +str(costmap.getCost(point.mapX, point.mapY)))
         return False
 
     hasFree = False
@@ -264,6 +278,7 @@ def isFrontierPoint(point, costmap, fCache):
         cost = costmap.getCost(n.mapX, n.mapY)
 
         if cost > OCC_THRESHOLD:
+           # print("oops")
             return False
 
         if cost == OccupancyGrid2d.CostValues.FreeSpace.value:
@@ -299,17 +314,11 @@ class WaypointFollowerTest(Node):
         self.initial_pose_received = False
         self.goal_handle = None
 
-        pose_qos = QoSProfile(
-          durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
-          reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_RELIABLE,
-          history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-          depth=1)
-
         self.model_pose_sub = self.create_subscription(Odometry,
-                                                       '/odom', self.poseCallback, pose_qos)
+                                                       '/odom', self.poseCallback, 10)
 
         # self.costmapSub = self.create_subscription(Costmap(), '/global_costmap/costmap_raw', self.costmapCallback, pose_qos)
-        self.costmapSub = self.create_subscription(OccupancyGrid(), '/map', self.occupancyGridCallback, pose_qos)
+        self.costmapSub = self.create_subscription(OccupancyGrid, '/map', self.occupancyGridCallback, 10)
         self.costmap = None
 
         self.pose = self.create_publisher(PoseStamped,'goal_pose',10)
@@ -324,10 +333,11 @@ class WaypointFollowerTest(Node):
 
         self.tree = False
 
-        # self.nav = BasicNavigator()
+    #     self.nav = self.create_subscription(BasicNavigator, 'nav', self.get_result,  10)
 
-    # def get_result(self):
-    #     result = self.nav.getResult()
+    # def get_result(self, msg):
+    #     t = BasicNavigator()
+    #     result = t.getResult()
     #     if result == TaskResult.SUCCEEDED:
     #         print('Goal succeeded!')
     #         return 1
@@ -371,8 +381,9 @@ class WaypointFollowerTest(Node):
 
             # Check if the current waypoint is already set and if it's close to the current position
 
-            frontier = getFrontier(self.currentPose, self.costmap, self.get_logger())
-            frontiers = [x for x in frontier if x not in self.visitedf]
+            frontiers = getFrontier(self.currentPose, self.costmap, self.get_logger())
+
+            #frontiers = [x for x in frontier if x not in self.visitedf]
 
             if len(frontiers) == 0:
                 self.info_msg('No more frontiers, exploration complete')
@@ -384,12 +395,18 @@ class WaypointFollowerTest(Node):
             largestDist2 = 0
             all_loc = []
 
+
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
                 all_loc.append(dist)
                 if  dist > largestDist:
                     largestDist = dist
                     location = [f]
+
+            med_value = statistics.median(all_loc)
+            closest_el = min(all_loc, key=lambda x: abs(x - med_value))
+            index = all_loc.index(closest_el)
+            location = [frontiers[index]]
 
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
@@ -408,8 +425,18 @@ class WaypointFollowerTest(Node):
                         self.info_msg('finding new waypoint...')
                 self.info_msg('setting new waypoint')
                 self.setWaypoints(location)
+            # if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=0.1):
+            #     self.info_msg('Already at or close to the current waypoint')
+            #     all_loc.pop(index)
+            #     frontiers.pop(index)
+            #     closest_el = min(all_loc, key=lambda x: abs(x - med_value))
+            #     index = all_loc.index(closest_el)
+            #     location = [frontiers[index]]
+            #     self.info_msg('finding new waypoint...')
+            #     self.info_msg('setting new waypoint')
+            #     self.setWaypoints(location)
 
-            self.visitedf.append(location[0])
+            # self.visitedf.append(location[0])
 
             self.info_msg('Sending goal request...')
 
@@ -437,21 +464,27 @@ class WaypointFollowerTest(Node):
         self.get_logger().info(f'costmap resolution {costmap.specs.resolution}')
 
     def setInitialPose(self, pose):
-        self.init_pose = PoseStamped()
-        self.init_pose.pose.position.x = pose[0]
-        self.init_pose.pose.position.y = pose[1]
+        self.init_pose = PoseWithCovarianceStamped()
+        self.init_pose.pose.pose.position.x = pose[0]
+        self.init_pose.pose.pose.position.y = pose[1]
+        self.init_pose.header.frame_id = 'map'
+        self.currentPose = self.init_pose.pose.pose
+        #self.publishInitialPose()
+        #time.sleep(5)
 
-        # self.init_pose.header.frame_id = 'map'
-        self.init_pose.pose.orientation.z = 1.0
-        self.currentPose = self.init_pose.pose
+        self.init_pose1 = PoseStamped()
+        self.init_pose1.pose.position.x = pose[0]
+        self.init_pose1.pose.position.y = pose[1]
+        self.init_pose1.header.frame_id = 'map'
+        self.currentPose = self.init_pose1.pose
         self.publishInitialPose()
+        self.pose.publish(self.init_pose1)
         time.sleep(5)
 
     def poseCallback(self, msg):
-        self.info_msg('Received amcl_pose')
+      #  self.info_msg('Received amcl_pose')
         self.currentPose = msg.pose.pose
         self.initial_pose_received = True
-
 
     def setWaypoints(self, waypoints):
         self.waypoints = []
@@ -464,7 +497,8 @@ class WaypointFollowerTest(Node):
             self.waypoints.append(msg)
 
     def publishInitialPose(self):
-        self.pose.publish(self.init_pose)
+        #self.pose.publish(self.init_pose)
+        self.initial_pose_pub.publish(self.init_pose)
 
 
     def info_msg(self, msg: str):
@@ -482,6 +516,9 @@ def main(argv=sys.argv[1:]):
 
     # wps = [[-0.52, -0.54], [0.58, -0.55], [0.58, 0.52]]
     starting_pose = [-1.0, -0.5]
+
+    # wps = [[-20.52, -20.54], [20.58, -20.55], [20.58, 20.52]]
+    # starting_pose = [-2.0, -2.0]
 
     test = WaypointFollowerTest()
     goal_counter = 0
