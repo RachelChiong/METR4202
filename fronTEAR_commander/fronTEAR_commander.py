@@ -399,9 +399,9 @@ class WaypointFollowerTest(Node):
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
                 all_loc.append(dist)
-                if  dist > largestDist:
-                    largestDist = dist
-                    location = [f]
+                # if  dist > largestDist:
+                #     largestDist = dist
+                #     location = [f]
 
             med_value = statistics.median(all_loc)
             closest_el = min(all_loc, key=lambda x: abs(x - med_value))
