@@ -23,6 +23,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
 from rclpy.time import Duration
+from queue import SimpleQueue, PriorityQueue
 
 from enum import Enum
 
@@ -32,6 +33,10 @@ import math
 
 OCC_THRESHOLD = 50
 MIN_FRONTIER_SIZE = 30
+
+FREE_SPACE = 0
+NOGO_SPACE = 100
+UNKNOWN_SPACE = -1
 
 class RecoveryStrategy:
     def __init__(self):
@@ -363,7 +368,6 @@ def isFrontierPoint(point: FrontierPoint, costmap: OccupancyGrid2d, fCache: Fron
         cost = costmap.getCost(n.mapX, n.mapY)
 
         if cost > OCC_THRESHOLD:
-           # print("oops")
             return False
 
         if cost == OccupancyGrid2d.CostValues.FreeSpace.value:
@@ -394,6 +398,7 @@ class WaypointFollowerTest(Node):
         self.initial_pose_received = False
         self.goal_handle = None
         self.costmap = None
+        self.explored_waypoints = []
 
         ### SUBSCRIBERS ###
         self.subscription = self.create_subscription(
@@ -424,20 +429,6 @@ class WaypointFollowerTest(Node):
         self.get_logger().info('Running FronTEAR_Commander...')
 
 
-    #     self.nav = self.create_subscription(BasicNavigator, 'nav', self.get_result,  10)
-
-    # def get_result(self, msg):
-    #     t = BasicNavigator()
-    #     result = t.getResult()
-    #     if result == TaskResult.SUCCEEDED:
-    #         print('Goal succeeded!')
-    #         return 1
-    #     elif result == TaskResult.CANCELED:
-    #         print('Goal was canceled!')
-    #         return -1
-    #     elif result == TaskResult.FAILED:
-    #         print('Goal failed!')
-    #         return 0
 
     ### CALLBACK FUNCTIONS ####################################################
     def bt_log_callback(self, msg:BehaviorTreeLog):
@@ -450,8 +441,32 @@ class WaypointFollowerTest(Node):
         for event in msg.event_log:
             if event.node_name == 'NavigateRecovery' and \
                 event.current_status == 'IDLE':
+                if self.costmap is None:
+                    return
+
                 self.tree = True
-                self.moveToFrontiers()
+                frontier = self.seggregate_frontiers(self.currentPose, self.costmap)
+                if frontier.empty():
+                    print("No more frontiers")
+                    self.is_complete = True
+                    return
+
+                waypoints = frontier.get()[1]
+                waypoint = waypoints.pop(0)
+
+                wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
+
+                while len(waypoints) > 0:
+                    wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
+                    w = round(wp[0], 1), round(wp[1], 1)
+                    if w not in self.explored_waypoints:
+                        self.explored_waypoints.append(w)
+                        break
+                    waypoint = waypoints.pop(0)
+
+                self.setWaypoints([wp])
+                self.pose.publish(self.waypoints[0])
+                #self.moveToFrontiers()
                 break
 
         self.tree = False
@@ -461,17 +476,6 @@ class WaypointFollowerTest(Node):
         Constructs the occupancy grid (-1, 0, 100) values of the global map
         """
         self.costmap = OccupancyGrid2d(msg)
-
-    def costmapCallback(self, msg):
-        self.costmap = Costmap2d(msg)
-
-        unknowns = 0
-        for x in range(0, self.costmap.getSizeX()):
-            for y in range(0, self.costmap.getSizeY()):
-                if self.costmap.getCost(x, y) == 255:
-                    unknowns = unknowns + 1
-        self.get_logger().info(f'Unknowns {unknowns}')
-        self.get_logger().info(f'Got Costmap {len(getFrontier(None, self.costmap, self.get_logger()))}')
 
     def poseCallback(self, msg):
         """
@@ -500,6 +504,74 @@ class WaypointFollowerTest(Node):
         distance = math.sqrt((position.x - waypoint.pose.position.x)**2 + (position.y - waypoint.pose.position.y)**2)
         return distance < tolerance
 
+    ### NEW BANANA CODE #######################################################
+
+    def get_waypoint(self, frontiers: PriorityQueue) -> PoseStamped:
+        new_waypoint = PoseStamped()
+        p = frontiers.get()
+        new_waypoint.pose.position.x = p[1][0]
+        new_waypoint.pose.position.y = p[1][1]
+
+        return new_waypoint
+
+    def near_unknown(self, x: int, y: int, costmap: OccupancyGrid2d) -> bool:
+        for i in range(-1, 1):
+            for j in range(-1, 1):
+                value = costmap.getCost(x + i, y + j)
+                if value == -1:
+                    return True
+        return False
+
+    def seggregate_frontiers(self, pose: PoseStamped, costmap: OccupancyGrid2d) -> PriorityQueue:
+        self.shit_points = []
+        self.good_points = []
+        n_rows = costmap.getSizeX()
+        n_cols = costmap.getSizeY()
+
+        for i in range(n_rows):
+            for j in range(n_cols):
+                value = costmap.getCost(i, j)
+                if value == FREE_SPACE and self.near_unknown(i, j, costmap):
+                    self.good_points.append((i, j))
+                elif value == NOGO_SPACE and self.near_unknown(i, j, costmap):
+                    self.shit_points.append((i, j))
+
+        # Cluster the frontiers
+        frontier_groups = PriorityQueue() # (length, frontiers[])
+        count = 0
+        while len(self.good_points) > 0:
+            point = self.good_points.pop(0)
+            cluster = self.get_cluster(point)
+            cluster_size = len(cluster)
+            if cluster_size > OCC_THRESHOLD:
+                frontier_groups.put((-1 * len(cluster), cluster))
+                count += 1
+        print(f"Frontier size: {count}")
+        return frontier_groups
+
+    def get_cluster(self, point: tuple) -> list:
+        # if len(points) == 1:
+        #    if points[0] in self.good_points:
+        #        self.good_points.remove(points[0])
+        #        return points[0]
+        cluster = []
+        nearby_points = set((a + point[0], b + point[1])
+            for a in range(-2, 2, 1)
+            for b in range(-2, 2, 1)
+            if (a + point[0], b + point[1]) in self.good_points)
+
+        while len(nearby_points) > 0:
+            p = nearby_points.pop()
+            self.good_points.remove(p)
+            cluster.append(p)
+
+            for a in range(-2, 2, 1):
+                for b in range(-2, 2, 1):
+                    if (a + p[0], b + p[1]) in self.good_points:
+                        nearby_points.add((a + p[0], b + p[1]))
+
+        return cluster
+
     def moveToFrontiers(self):
         """
         Calls the getFrontier function and selects the frontier with the median
@@ -522,7 +594,7 @@ class WaypointFollowerTest(Node):
 
             # Check if the current waypoint is already set and if it's close to the current position
 
-            frontiers = getFrontier(self.currentPose, self.costmap, self.get_logger())
+            frontiers = self.seggregate_frontiers(self.currentPose, self.costmap)
 
             #frontiers = [x for x in frontier if x not in self.visitedf]
 
