@@ -137,6 +137,11 @@ class OccupancyGrid2d():
         return my * self.map.info.width + mx
 
 class FrontierCache():
+    """_summary_
+
+    Returns:
+        _type_: _description_
+    """
     cache = {}
 
     def getPoint(self, x, y):
@@ -154,20 +159,44 @@ class FrontierCache():
     def clear(self):
         self.cache = {}
 
+    def __repr__(self) -> str:
+        return list(self.cache)
+        pass
+
 class FrontierPoint():
     def __init__(self, x, y):
         self.classification = 0
         self.mapX = x
         self.mapY = y
 
-def centroid(arr):
+def centroid(arr) -> tuple:
+    """
+    Determines the coordinate of the centre of the array
+
+    Args:
+        arr (_type_): _description_
+
+    Returns:
+        tuple: the (x, y) coordinate of the centre point of the array
+    """
     arr = np.array(arr)
     length = arr.shape[0]
     sum_x = np.sum(arr[:, 0])
     sum_y = np.sum(arr[:, 1])
     return sum_x/length, sum_y/length
 
-def findFree(mx, my, costmap):
+def findFree(mx: float, my: float, costmap: OccupancyGrid2d) -> tuple:
+    """
+    Finds the closest valid free space to the coordinate (mx, my)
+
+    Args:
+        mx (float): x-coordinate
+        my (float): y-coordinate
+        costmap (OccupancyGrid2d): _description_
+
+    Returns:
+        tuple: (x, y) coordinate of the frontier point is the costmap
+    """
     fCache = FrontierCache()
 
     bfs = [fCache.getPoint(mx, my)]
@@ -175,8 +204,8 @@ def findFree(mx, my, costmap):
     while len(bfs) > 0:
         loc = bfs.pop(0)
 
+        # if the coordinate provided is a
         if costmap.getCost(loc.mapX, loc.mapY) == OccupancyGrid2d.CostValues.FreeSpace.value:
-           # print("hello")
             return (loc.mapX, loc.mapY)
 
         for n in getNeighbors(loc, costmap, fCache):
@@ -219,14 +248,12 @@ def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d, logger) -> list:
     # Clear frontier Cache on each run
     fCache.clear()
 
+    #TODO: change these lists to queues for optimisation
     mx, my = costmap.worldToMap(pose.position.x, pose.position.y)
     freePoint = findFree(mx, my, costmap)
     start = fCache.getPoint(freePoint[0], freePoint[1])
-   # print("start"+str(start))
     start.classification = PointClassification.MapOpen.value
-   # print(start.classification)
     mapPointQueue = [start]
-   # print("mapQ"+str(mapPointQueue))
 
     frontiers = []
 
@@ -282,8 +309,6 @@ def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d, logger) -> list:
 
         # Set the point classification as closed
         p.classification = p.classification | PointClassification.MapClosed.value
-
-   # print("frontiers" + str(frontiers))
 
     return frontiers
 
@@ -353,7 +378,7 @@ class WaypointFollowerTest(Node):
     def __init__(self):
         super().__init__(node_name='nav2_waypoint_tester', namespace='')
 
-        ### Variables #########################################################
+        ### VARIABLES ###
         self.visitedf = []
         self.waypoints = None
         self.readyToMove = True
@@ -366,7 +391,7 @@ class WaypointFollowerTest(Node):
         self.goal_handle = None
         self.costmap = None
 
-        ### SUBSCRIBERS #######################################################
+        ### SUBSCRIBERS ###
         self.subscription = self.create_subscription(
             BehaviorTreeLog,
             'behavior_tree_log',
@@ -380,7 +405,7 @@ class WaypointFollowerTest(Node):
         while not self.costmapClient.wait_for_service(timeout_sec=1.0):
             self.info_msg('service not available, waiting again...')
 
-        ### PUBLISHERS ########################################################
+        ### PUBLISHERS ###
         self.model_pose_sub = self.create_subscription(Odometry,
                                                        '/odom', self.poseCallback, 10)
 
@@ -519,7 +544,7 @@ class WaypointFollowerTest(Node):
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
 
-            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=1):
+            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=2):
                 self.info_msg('Already at or close to the current waypoint')
                 index = all_loc.index(max(all_loc))
                 all_loc.pop(index)
