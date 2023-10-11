@@ -1,0 +1,9 @@
+source;share/fronTEAR_commander/hook/pythonpath.ps1
+source;share/fronTEAR_commander/hook/pythonpath.dsv
+source;share/fronTEAR_commander/hook/pythonpath.sh
+source;share/fronTEAR_commander/hook/ament_prefix_path.ps1
+source;share/fronTEAR_commander/hook/ament_prefix_path.dsv
+source;share/fronTEAR_commander/hook/ament_prefix_path.sh
+source;../../build/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath_develop.ps1
+source;../../build/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath_develop.dsv
+source;../../build/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath_develop.sh

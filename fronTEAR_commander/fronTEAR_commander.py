@@ -398,11 +398,24 @@ class WaypointFollowerTest(Node):
             for f in frontiers:
                 dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
                 all_loc.append(dist)
-                
-            med_value = statistics.median(all_loc)
-            closest_el = min(all_loc, key=lambda x: abs(x - med_value))
-            index = all_loc.index(closest_el)
-            location = [frontiers[index]]    
+
+                # issue with accessing the closest waypoints so try sorting the order to head to the closest ones first 
+                # reate a new list which store tuples 
+                # in the tuples hae the frontier cooridnates, the distance to the robot
+                # sort based on the distance to the robot
+                # extract the frontier coordinates in that order 
+
+            #create a new list which stores the frontiers and their distance to the robot
+            frontiers_with_distance = [(frontiers, dist)for f in frontiers]
+            # sort the frontiers based on the distance 
+            sorted_frontiers = sorted(frontiers_with_distance, key = lambda x:x[1])
+            # extract the frontier coordinates inn the sorted order and store in location
+            location = [s[0] for s in sorted_frontiers]
+
+            # med_value = statistics.median(all_loc)
+            # closest_el = min(all_loc, key=lambda x: abs(x - med_value))
+            # index = all_loc.index(closest_el)
+            # location = [frontiers[index]]    
 
             self.info_msg(f'World points {location}')
             self.setWaypoints(location)
