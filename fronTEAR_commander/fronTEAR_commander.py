@@ -231,7 +231,7 @@ def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d, logger) -> list:
         by the inner BFS (frontierQueue).
 
     Args:
-        point (FrontierPoint): provided frontier (x, y) point to check validty
+        point (FrontierPoint): Current position of the robot
         costmap (OccupancyGrid2D): the current occupancy grid costmap
         logger (_type_): _description_
 
@@ -250,12 +250,16 @@ def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d, logger) -> list:
 
     #TODO: change these lists to queues for optimisation
     mx, my = costmap.worldToMap(pose.position.x, pose.position.y)
+
     freePoint = findFree(mx, my, costmap)
     start = fCache.getPoint(freePoint[0], freePoint[1])
     start.classification = PointClassification.MapOpen.value
     mapPointQueue = [start]
 
     frontiers = []
+    print("Costmap size: ", costmap.getSizeX(), costmap.getSizeY())
+    radius = min(abs(costmap.getSizeX() - mx), abs(my - costmap.getSizeY()))
+    print(f"Position ({mx}, {my}) Size: ({costmap.getSizeX()}, {costmap.getSizeY()}), radius: {radius}")
 
     # While there are mapPoints to be explored (i.e. frontier nodes not determined)
     while len(mapPointQueue) > 0:
@@ -503,6 +507,9 @@ class WaypointFollowerTest(Node):
         """
 
         if self.tree:
+            twist = Twist()
+            twist.angular.z = 0.5
+            self.twist_pub.publish(twist)
 
             # # recovery = RecoveryStrategy()
             # # print(self.get_result())
