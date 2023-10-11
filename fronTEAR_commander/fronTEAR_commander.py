@@ -398,19 +398,20 @@ class WaypointFollowerTest(Node):
             self.bt_log_callback,
             10)
 
-        self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
-                                                      'initialpose', 10)
 
         self.costmapClient = self.create_client(GetCostmap, '/global_costmap/get_costmap')
         while not self.costmapClient.wait_for_service(timeout_sec=1.0):
             self.info_msg('service not available, waiting again...')
 
-        ### PUBLISHERS ###
         self.model_pose_sub = self.create_subscription(Odometry,
                                                        '/odom', self.poseCallback, 10)
 
         # self.costmapSub = self.create_subscription(Costmap(), '/global_costmap/costmap_raw', self.costmapCallback, 10)
         self.costmapSub = self.create_subscription(OccupancyGrid, '/map', self.occupancyGridCallback, 10)
+
+        ### PUBLISHERS ###
+        self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
+                                                      'initialpose', 10)
 
         self.pose = self.create_publisher(PoseStamped,'goal_pose',10)
 
