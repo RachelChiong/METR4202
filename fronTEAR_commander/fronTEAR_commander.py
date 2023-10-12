@@ -37,6 +37,7 @@ MIN_FRONTIER_SIZE = 30
 FREE_SPACE = 0
 NOGO_SPACE = 100
 UNKNOWN_SPACE = -1
+SCAN_RESOLUTION = 0.05
 
 class RecoveryStrategy:
     def __init__(self):
@@ -65,7 +66,6 @@ class RecoveryStrategy:
 
         # Stop the robot
         self.stop_robot()
-
 
     def run_recovery(self):
         self.node.get_logger().info('Starting recovery strategy')
@@ -174,7 +174,7 @@ class FrontierPoint():
         self.mapX = x
         self.mapY = y
 
-def centroid(arr) -> tuple:
+def centroid(arr: list, costmap: OccupancyGrid2d) -> tuple:
     """
     Determines the coordinate of the centre of the array
 
@@ -188,198 +188,62 @@ def centroid(arr) -> tuple:
     length = arr.shape[0]
     sum_x = np.sum(arr[:, 0])
     sum_y = np.sum(arr[:, 1])
+
+    # cx = round(sum_x/length)
+    # cy = round(sum_y/length)
+    # new_x, new_y = check_for_collisions(costmap, cx, cy)
+    # print(f"original: ({cx}, {cy}), new: ({new_x}, {new_y})")
+    # return new_x, new_y
     return sum_x/length, sum_y/length
 
-def findFree(mx: float, my: float, costmap: OccupancyGrid2d) -> tuple:
-    """
-    Finds the closest valid free space to the coordinate (mx, my)
+RADIUS = 0.22
 
-    Args:
-        mx (float): x-coordinate
-        my (float): y-coordinate
-        costmap (OccupancyGrid2d): _description_
+def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> bool:
+    ux = cx + 10
+    lx = cx - 10
+    uy = cy + 10
+    ly = cy - 10
 
-    Returns:
-        tuple: (x, y) coordinate of the frontier point is the costmap
-    """
-    fCache = FrontierCache()
+    shifts = [(-5, 0), (5, 0), (0, -5), (0, 5)]
+    # start left shift
+    while lx <= 0:
+        lx += 5
+        ux += 5
+    while ux > costmap.getSizeX():
+        lx -= 5
+        ux -= 5
 
-    bfs = [fCache.getPoint(mx, my)]
+    while ly <= 0:
+        ly += 5
+        uy += 5
+    while uy > costmap.getSizeY():
+        ly -= 5
+        uy -= 5
 
-    while len(bfs) > 0:
-        loc = bfs.pop(0)
+    valid = False
+    while not valid:
+        # check left edge
+        if costmap.getCost(lx, ly) == 100 or costmap.getCost(lx, uy) == 100:
+            lx += 5
+            ux += 5
 
-        # if the coordinate provided is a
-        if costmap.getCost(loc.mapX, loc.mapY) == OccupancyGrid2d.CostValues.FreeSpace.value:
-            return (loc.mapX, loc.mapY)
+        elif costmap.getCost(ux, ly) == 100 or costmap.getCost(ux, uy) == 100:
+            lx -= 5
+            ux -= 5
 
-        for n in getNeighbors(loc, costmap, fCache):
-            if n.classification & PointClassification.MapClosed.value == 0:
-                n.classification = n.classification | PointClassification.MapClosed.value
-                bfs.append(n)
+        elif costmap.getCost(lx, ly) == 100 or costmap.getCost(lx, uy) == 100:
+            ly += 5
+            uy += 5
 
-    return (mx, my)
+        elif costmap.getCost(ux, ly) == 100 or costmap.getCost(ux, uy) == 100:
+            ly -= 5
+            uy -= 5
 
-def getFrontier(pose: PoseStamped, costmap: OccupancyGrid2d, logger) -> list:
-    """
-    Uses the Wavefront Frontier Detector (WFD) algorithm which uses two nested
-    Bread-First Searches (BFS). It only scans the known regions of the occupancy
-    grid at each run of the algorithm.
+        else:
+            valid = True
 
-    1. Map-Open-List: points that have been enqueued by
-        the outer BFS (mapPointQueue).
-    2. Map-Close-List: points that have been dequeued by
-        the outer BFS (mapPointQueue).
-    3. Frontier-Open-List: points that have been enqueued
-        by the inner BFS (frontierQueue).
-    4. Frontier-Close-List: points that have been dequeued
-        by the inner BFS (frontierQueue).
-
-    Args:
-        point (FrontierPoint): Current position of the robot
-        costmap (OccupancyGrid2D): the current occupancy grid costmap
-        logger (_type_): _description_
-
-    Returns:
-        list: _description_
-
-    Reference:
-    Adapted from https://github.com/SeanReg/nav2_wavefront_frontier_exploration
-    originally by SeanReg. Used under MIT License.
-    """
-
-    fCache = FrontierCache()
-
-    # Clear frontier Cache on each run
-    fCache.clear()
-
-    #TODO: change these lists to queues for optimisation
-    mx, my = costmap.worldToMap(pose.position.x, pose.position.y)
-
-    freePoint = findFree(mx, my, costmap)
-    start = fCache.getPoint(freePoint[0], freePoint[1])
-    start.classification = PointClassification.MapOpen.value
-    mapPointQueue = [start]
-
-    frontiers = []
-    print("Costmap size: ", costmap.getSizeX(), costmap.getSizeY())
-    radius = min(abs(costmap.getSizeX() - mx), abs(my - costmap.getSizeY()))
-    print(f"Position ({mx}, {my}) Size: ({costmap.getSizeX()}, {costmap.getSizeY()}), radius: {radius}")
-
-    # While there are mapPoints to be explored (i.e. frontier nodes not determined)
-    while len(mapPointQueue) > 0:
-        # get the first point
-        p = mapPointQueue.pop(0)
-
-        # if the point provided has already been classified, skip
-        if p.classification & PointClassification.MapClosed.value != 0:
-            continue
-
-        # check whether the point is a valid point on the costmap
-        if isFrontierPoint(p, costmap, fCache):
-            p.classification = p.classification | PointClassification.FrontierOpen.value
-            frontierQueue = [p]
-            newFrontier = []
-
-            while len(frontierQueue) > 0:
-                q = frontierQueue.pop(0)
-
-                if q.classification & (PointClassification.MapClosed.value | PointClassification.FrontierClosed.value) != 0:
-                    continue
-
-                if isFrontierPoint(q, costmap, fCache):
-                    newFrontier.append(q)
-
-                    for w in getNeighbors(q, costmap, fCache):
-                        if w.classification & (PointClassification.FrontierOpen.value | PointClassification.FrontierClosed.value | PointClassification.MapClosed.value) == 0:
-                            w.classification = w.classification | PointClassification.FrontierOpen.value
-                            frontierQueue.append(w)
-
-                q.classification = q.classification | PointClassification.FrontierClosed.value
-
-
-            newFrontierCords = []
-            for x in newFrontier:
-                x.classification = x.classification | PointClassification.MapClosed.value
-                newFrontierCords.append(costmap.mapToWorld(x.mapX, x.mapY))
-
-            if len(newFrontier) > MIN_FRONTIER_SIZE:
-                frontiers.append(centroid(newFrontierCords))
-
-        for v in getNeighbors(p, costmap, fCache):
-            # check whether the neighboring point is free space
-            if v.classification & (PointClassification.MapOpen.value | PointClassification.MapClosed.value) == 0:
-                # Append the neighboring point into the mapPointQueue if any of
-                # the neighboring points (to this point) is a free space
-                # (i.e. v becomes part of the frontier)
-                if any(costmap.getCost(x.mapX, x.mapY) == OccupancyGrid2d.CostValues.FreeSpace.value for x in getNeighbors(v, costmap, fCache)):
-                    v.classification = v.classification | PointClassification.MapOpen.value
-                    mapPointQueue.append(v)
-
-        # Set the point classification as closed
-        p.classification = p.classification | PointClassification.MapClosed.value
-
-    return frontiers
-
-
-def getNeighbors(point: FrontierPoint, costmap: OccupancyGrid2d, fCache: FrontierCache) -> list:
-    """
-    Gets the neighboring points on the costmap from a specified point
-
-    Args:
-        point (FrontierPoint): provided frontier (x, y) point to check validty
-        costmap (OccupancyGrid2D): the current occupancy grid costmap
-        fCache (FrontierCache): cache which contains the costmap coordinates (x, y)
-                                with a given point (x, y)
-
-    Returns:
-        list: containing all neighboring coordinates (x, y) to a given point in
-                a format that can be converted into a PoseStamped variable
-    """
-    neighbors = []
-
-    for x in range(point.mapX - 1, point.mapX + 2):
-        for y in range(point.mapY - 1, point.mapY + 2):
-            if (x > 0 and x < costmap.getSizeX() and y > 0 and y < costmap.getSizeY()):
-                neighbors.append(fCache.getPoint(x, y))
-
-    return neighbors
-
-def isFrontierPoint(point: FrontierPoint, costmap: OccupancyGrid2d, fCache: FrontierCache) -> bool:
-    """
-    Checks whether the point (x, y) provided is a valid point in the costmap
-
-    Args:
-        point (FrontierPoint): provided frontier (x, y) point to check validty
-        costmap (OccupancyGrid2D): the current occupancy grid costmap
-        fCache (FrontierCache): cache which contains the costmap coordinates (x, y)
-                                with a given point (x, y)
-
-    Returns:
-        bool: True if frontier is valid, otherwise False
-    """
-    # If the (x, y) point returns no information from the costmap, then it is an
-    # invalid value
-    if costmap.getCost(point.mapX, point.mapY) != OccupancyGrid2d.CostValues.NoInformation.value:
-        return False
-
-    hasFree = False
-    for n in getNeighbors(point, costmap, fCache):
-        cost = costmap.getCost(n.mapX, n.mapY)
-
-        if cost > OCC_THRESHOLD:
-            return False
-
-        if cost == OccupancyGrid2d.CostValues.FreeSpace.value:
-            hasFree = True
-
-    return hasFree
-
-class PointClassification(Enum):
-    MapOpen = 1
-    MapClosed = 2
-    FrontierOpen = 4
-    FrontierClosed = 8
+    # return new centre point
+    return ux - lx // 2, uy - ly // 2
 
 class WaypointFollowerTest(Node):
 
@@ -399,6 +263,7 @@ class WaypointFollowerTest(Node):
         self.goal_handle = None
         self.costmap = None
         self.explored_waypoints = []
+        self.costmap_updated = False
 
         ### SUBSCRIBERS ###
         self.subscription = self.create_subscription(
@@ -414,6 +279,7 @@ class WaypointFollowerTest(Node):
 
         self.model_pose_sub = self.create_subscription(Odometry,
                                                        '/odom', self.poseCallback, 10)
+        # self.costmap_update_sub = self.create_subscription(Costmap, self.costmapUpdateCallback, '/global_')
 
         # self.costmapSub = self.create_subscription(Costmap(), '/global_costmap/costmap_raw', self.costmapCallback, 10)
         self.costmapSub = self.create_subscription(OccupancyGrid, '/map', self.occupancyGridCallback, 10)
@@ -429,6 +295,39 @@ class WaypointFollowerTest(Node):
         self.get_logger().info('Running FronTEAR_Commander...')
 
 
+    def move_to_frontier(self):
+        if self.costmap is None:
+            return
+
+        self.costmap_updated = False
+        self.tree = True
+        self.info_msg("Starting sleep...")
+        time.sleep(1)
+        self.info_msg("Awoken")
+        frontier = self.seggregate_frontiers(self.currentPose, self.costmap)
+        if frontier.empty():
+            print("No more frontiers")
+            self.is_complete = True
+            return
+
+        while not frontier.empty():
+            waypoint = centroid(frontier.get()[1], self.costmap)
+            wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
+            w = round(wp[0], 2), round(wp[1], 2)
+
+            if w not in self.explored_waypoints:
+                print(self.explored_waypoints)
+                self.explored_waypoints.append(w)
+                self.setWaypoints([wp])
+                print(f"Publishing waypoint: ({wp[0], wp[1]})")
+                self.pose.publish(self.waypoints[0])
+                return
+
+            print(f"frontier discarded: ({wp[0]}, {wp[1]})")
+        #     waypoint = waypoints.pop(0)
+        self.is_complete = True
+        print("All frontiers searched")
+        #self.moveToFrontiers()
 
     ### CALLBACK FUNCTIONS ####################################################
     def bt_log_callback(self, msg:BehaviorTreeLog):
@@ -441,33 +340,7 @@ class WaypointFollowerTest(Node):
         for event in msg.event_log:
             if event.node_name == 'NavigateRecovery' and \
                 event.current_status == 'IDLE':
-                if self.costmap is None:
-                    return
-
-                self.tree = True
-                frontier = self.seggregate_frontiers(self.currentPose, self.costmap)
-                if frontier.empty():
-                    print("No more frontiers")
-                    self.is_complete = True
-                    return
-
-                waypoints = frontier.get()[1]
-                waypoint = waypoints.pop(0)
-
-                wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
-
-                while len(waypoints) > 0:
-                    wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
-                    w = round(wp[0], 1), round(wp[1], 1)
-                    if w not in self.explored_waypoints:
-                        self.explored_waypoints.append(w)
-                        break
-                    waypoint = waypoints.pop(0)
-
-                self.setWaypoints([wp])
-                self.pose.publish(self.waypoints[0])
-                #self.moveToFrontiers()
-                break
+                self.move_to_frontier()
 
         self.tree = False
 
@@ -475,7 +348,9 @@ class WaypointFollowerTest(Node):
         """
         Constructs the occupancy grid (-1, 0, 100) values of the global map
         """
+        print("Updated Occupancy Grid")
         self.costmap = OccupancyGrid2d(msg)
+        self.costmap_updated = True
 
     def poseCallback(self, msg):
         """
@@ -484,25 +359,6 @@ class WaypointFollowerTest(Node):
       #  self.info_msg('Received amcl_pose')
         self.currentPose = msg.pose.pose
         self.initial_pose_received = True
-
-    def is_close_to_waypoint(self, position, waypoint: PoseStamped, tolerance: float) -> Bool:
-        """
-        Checks whether a waypoint is close to the current position by calculating
-        the Euclidean distance between the two points and comparing to the tolerance
-        distance.
-
-        Args
-            position (PoseStamped.pose.position): The current position of the robot
-            waypoint (PoseStamped): The new waypoint check check proximity
-            tolerance (float): The radius from the robot's current position which
-                                is considered close to waypoint
-
-        Returns
-            True if distance is under tolerance, False otherwise
-        """
-    # Check if the current position is close to the waypoint within the specified tolerance
-        distance = math.sqrt((position.x - waypoint.pose.position.x)**2 + (position.y - waypoint.pose.position.y)**2)
-        return distance < tolerance
 
     ### NEW BANANA CODE #######################################################
 
@@ -535,18 +391,24 @@ class WaypointFollowerTest(Node):
                     self.good_points.append((i, j))
                 elif value == NOGO_SPACE and self.near_unknown(i, j, costmap):
                     self.shit_points.append((i, j))
-
+        print("Number of good points: ", len(self.good_points))
         # Cluster the frontiers
         frontier_groups = PriorityQueue() # (length, frontiers[])
         count = 0
+        largest = 0
+        total_clusters = 0
         while len(self.good_points) > 0:
             point = self.good_points.pop(0)
             cluster = self.get_cluster(point)
             cluster_size = len(cluster)
-            if cluster_size > OCC_THRESHOLD:
-                frontier_groups.put((-1 * len(cluster), cluster))
+            total_clusters += 1
+            if (-1 * cluster_size < largest):
+                largest = -1 * cluster_size
+            if cluster_size > 0:
+                print(f"cluster size: {-1 * cluster_size}")
+                frontier_groups.put((-1 * cluster_size, cluster))
                 count += 1
-        print(f"Frontier size: {count}")
+        print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
         return frontier_groups
 
     def get_cluster(self, point: tuple) -> list:
@@ -554,7 +416,7 @@ class WaypointFollowerTest(Node):
         #    if points[0] in self.good_points:
         #        self.good_points.remove(points[0])
         #        return points[0]
-        cluster = []
+        cluster = [point]
         nearby_points = set((a + point[0], b + point[1])
             for a in range(-2, 2, 1)
             for b in range(-2, 2, 1)
@@ -569,95 +431,9 @@ class WaypointFollowerTest(Node):
                 for b in range(-2, 2, 1):
                     if (a + p[0], b + p[1]) in self.good_points:
                         nearby_points.add((a + p[0], b + p[1]))
+        #print(cluster)
 
         return cluster
-
-    def moveToFrontiers(self):
-        """
-        Calls the getFrontier function and selects the frontier with the median
-        distance to the robot's current position. Then, publishes the waypoint
-        """
-
-        if self.tree:
-            twist = Twist()
-            twist.angular.z = 0.5
-            self.twist_pub.publish(twist)
-
-            # # recovery = RecoveryStrategy()
-            # # print(self.get_result())
-            # # if self.get_result() == -1 or self.get_result() == 0:
-            # #     print ("recovery")
-            # #     recovery.run_recovery()
-
-            # Get the current robot's position
-            current_position = self.currentPose.position
-
-            # Check if the current waypoint is already set and if it's close to the current position
-
-            frontiers = self.seggregate_frontiers(self.currentPose, self.costmap)
-
-            #frontiers = [x for x in frontier if x not in self.visitedf]
-
-            if len(frontiers) == 0:
-                self.info_msg('No more frontiers, exploration complete')
-                self.is_complete = True
-                return
-
-            location = None
-            largestDist = 0
-            largestDist2 = 0
-            all_loc = []
-
-            self.info_msg(f'Frontiers: {frontiers}')
-            for f in frontiers:
-                dist = math.sqrt(((f[0] - self.currentPose.position.x)**2) + ((f[1] - self.currentPose.position.y)**2))
-                all_loc.append(dist)
-                # if  dist > largestDist:
-                #     largestDist = dist
-                #     location = [f]
-
-            med_value = statistics.median(all_loc)
-            closest_el = min(all_loc, key=lambda x: abs(x - med_value))
-            index = all_loc.index(closest_el)
-            location = [frontiers[index]]
-
-            self.info_msg(f'World points {location}')
-            self.setWaypoints(location)
-
-            if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=2):
-                self.info_msg('Already at or close to the current waypoint')
-                index = all_loc.index(max(all_loc))
-                all_loc.pop(index)
-                frontiers.pop(index)
-                counter = -1
-                for loc in all_loc:
-                    counter +=1
-                    if loc > largestDist2:
-                        largestDist2 = loc
-                        location = [frontiers[counter]]
-                        self.info_msg('finding new waypoint...')
-                self.info_msg('setting new waypoint')
-                self.setWaypoints(location)
-            # if self.waypoints and self.is_close_to_waypoint(current_position, self.waypoints[0], tolerance=0.1):
-            #     self.info_msg('Already at or close to the current waypoint')
-            #     all_loc.pop(index)
-            #     frontiers.pop(index)
-            #     closest_el = min(all_loc, key=lambda x: abs(x - med_value))
-            #     index = all_loc.index(closest_el)
-            #     location = [frontiers[index]]
-            #     self.info_msg('finding new waypoint...')
-            #     self.info_msg('setting new waypoint')
-            #     self.setWaypoints(location)
-
-            # self.visitedf.append(location[0])
-
-            self.info_msg('Sending goal request...')
-
-            self.pose.publish(self.waypoints[0])
-            self.waypoint_counter += 1
-
-            self.info_msg('Goal accepted')
-
 
     def dumpCostmap(self):
         """
@@ -753,9 +529,9 @@ def main(argv=sys.argv[1:]):
         test.info_msg('Waiting for amcl_pose to be received')
         rclpy.spin_once(test, timeout_sec=1.0)  # wait for poseCallback
 
-    while test.costmap == None:
-        test.info_msg('Getting initial map')
-        rclpy.spin_once(test, timeout_sec=1.0)
+    # while test.costmap == None:
+        # test.info_msg('Getting initial map')
+        # rclpy.spin_once(test, timeout_sec=1.0)
 
     #test.moveToFrontiers()
     try:
