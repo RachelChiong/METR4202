@@ -543,7 +543,7 @@ class WaypointFollowerTest(Node):
             point = self.good_points.pop(0)
             cluster = self.get_cluster(point)
             cluster_size = len(cluster)
-            if cluster_size > OCC_THRESHOLD:
+            if cluster_size > OCC_THRESHOLD: # should be MIN_FRONTIER_SIZE
                 frontier_groups.put((-1 * len(cluster), cluster))
                 count += 1
         print(f"Frontier size: {count}")
