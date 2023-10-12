@@ -1,6 +1,5 @@
 slam_toolbox:
   ros_parameters:
-    max_laser_range: 3.5
     map_update_intervals: 0.01
     loop_match_minimum_response_fine: 0.8
     linear_update: 0.4
