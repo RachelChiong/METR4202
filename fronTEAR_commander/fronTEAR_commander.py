@@ -1,4 +1,11 @@
 #! /usr/bin/env python3
+"""
+Possible optimisation techniques:
+    -   weighting the frontier clusters based on their proximity to the robot
+        (currently goes back and forth prioritising biggest frontier)
+    -   Changing costmap frontier scope to be more local to the robot
+    -   not storing the shit points and reducing double counting
+"""
 
 import sys
 import time
@@ -38,31 +45,6 @@ FREE_SPACE = 0
 NOGO_SPACE = 100
 UNKNOWN_SPACE = -1
 SCAN_RESOLUTION = 0.05
-
-class Costmap2d():
-    class CostValues(Enum):
-        FreeSpace = 0
-        InscribedInflated = 253
-        LethalObstacle = 254
-        NoInformation = 255
-
-    def __init__(self, map):
-        self.map = map
-
-    def getCost(self, mx, my):
-        return self.map.data[self.__getIndex(mx, my)]
-
-    def getSize(self):
-        return (self.map.metadata.size_x, self.map.metadata.size_y)
-
-    def getSizeX(self):
-        return self.map.metadata.size_x
-
-    def getSizeY(self):
-        return self.map.metadata.size_y
-
-    def __getIndex(self, mx, my):
-        return my * self.map.metadata.size_x + mx
 
 class OccupancyGrid2d():
     """
@@ -256,7 +238,7 @@ def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> tuple:
 class FronTEARCommander(Node):
 
     def __init__(self):
-        super().__init__(node_name='nav2_waypoint_tester', namespace='')
+        super().__init__(node_name='nav2_waypoint_commanderer', namespace='')
 
         ### VARIABLES ###
         self.visitedf = []
@@ -321,7 +303,6 @@ class FronTEARCommander(Node):
         """
         Constructs the occupancy grid (-1, 0, 100) values of the global map
         """
-        print("Updated Occupancy Grid")
         self.costmap = OccupancyGrid2d(msg)
         self.costmap_updated = True
 
@@ -397,7 +378,7 @@ class FronTEARCommander(Node):
                 largest = -1 * cluster_size
 
             if cluster_size > 10:
-                print(f"cluster size: {-1 * cluster_size}")
+                # print(f"cluster size: {-1 * cluster_size}")
                 frontier_groups.put((-1 * cluster_size, cluster))
                 count += 1
         print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
@@ -545,34 +526,34 @@ def main(argv=sys.argv[1:]):
 
     starting_pose = [-1.0, -0.5]
 
-    test = FronTEARCommander()
+    commander = FronTEARCommander()
     goal_counter = 0
-    #test.dumpCostmap()
-    #test.setWaypoints(wps)
+    #commander.dumpCostmap()
+    #commander.setWaypoints(wps)
 
     retry_count = 0
     retries = 2
-    while not test.initial_pose_received and retry_count <= retries:
+    while not commander.initial_pose_received and retry_count <= retries:
         retry_count += 1
-        test.info_msg('Setting initial pose')
-        test.setInitialPose(starting_pose)
-        test.info_msg('Waiting for amcl_pose to be received')
-        rclpy.spin_once(test, timeout_sec=1.0)  # wait for poseCallback
+        commander.info_msg('Setting initial pose')
+        commander.setInitialPose(starting_pose)
+        commander.info_msg('Waiting for amcl_pose to be received')
+        rclpy.spin_once(commander, timeout_sec=1.0)  # wait for poseCallback
 
-    # while test.costmap == None:
-        # test.info_msg('Getting initial map')
-        # rclpy.spin_once(test, timeout_sec=1.0)
+    # while commander.costmap == None:
+        # commander.info_msg('Getting initial map')
+        # rclpy.spin_once(commander, timeout_sec=1.0)
 
     try:
         while rclpy.ok():
             # Your flag-checking logic here
-            if goal_counter < test.waypoint_counter:
-                test.info_msg(f"Goals submitted: {test.waypoint_counter}")
+            if goal_counter < commander.waypoint_counter:
+                commander.info_msg(f"Goals submitted: {commander.waypoint_counter}")
                 goal_counter += 1
 
-            if test.is_complete:
+            if commander.is_complete:
                 break  # Exit the loop to stop the node
-            rclpy.spin_once(test)
+            rclpy.spin_once(commander)
 
     except KeyboardInterrupt:
         pass
