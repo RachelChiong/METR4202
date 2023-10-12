@@ -404,7 +404,7 @@ class WaypointFollowerTest(Node):
             total_clusters += 1
             if (-1 * cluster_size < largest):
                 largest = -1 * cluster_size
-            if cluster_size > 0:
+            if cluster_size > 10:
                 print(f"cluster size: {-1 * cluster_size}")
                 frontier_groups.put((-1 * cluster_size, cluster))
                 count += 1
