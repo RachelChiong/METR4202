@@ -39,40 +39,6 @@ NOGO_SPACE = 100
 UNKNOWN_SPACE = -1
 SCAN_RESOLUTION = 0.05
 
-class RecoveryStrategy:
-    def __init__(self):
-        self.node = rclpy.create_node('recovery_strategy')
-        self.publisher = self.node.create_publisher(Twist, '/cmd_vel', 10)
-        self.stopped = False
-
-        # Define the recovery behavior
-        self.backup_duration = 2.0  # Duration to back up in seconds
-        self.rotation_duration = 2.0  # Duration to rotate in seconds
-
-    def stop_robot(self):
-        self.stopped = True
-        self.publisher.publish(Twist())
-
-    def backup_and_rotate(self):
-        # Back up the robot
-        twist = Twist()
-        twist.linear.x = -0.2  # Adjust linear velocity as needed
-        self.publisher.publish(twist)
-
-        # Calculate the target time for stopping
-        stop_time = self.node.get_clock().now() + Duration(seconds=self.backup_duration)
-        while self.node.get_clock().now() < stop_time:
-            pass
-
-        # Stop the robot
-        self.stop_robot()
-
-    def run_recovery(self):
-        self.node.get_logger().info('Starting recovery strategy')
-        self.backup_and_rotate()
-        self.node.get_logger().info('Recovery strategy complete')
-
-
 class Costmap2d():
     class CostValues(Enum):
         FreeSpace = 0
@@ -99,6 +65,22 @@ class Costmap2d():
         return my * self.map.metadata.size_x + mx
 
 class OccupancyGrid2d():
+    """
+    OccupancyGrid2d
+
+    Stores the map's occupancy grid and assigns them cost values.
+    Also handles conversion from costmap coodinate to world coordinate.
+
+    Methods
+        (+) getCost(mx, my)
+        (+) getSize()
+        (+) getSizeX(mx, my)
+        (+) getSizeY(mx, my)
+        (+) mapToWorld(mx, my)
+        (+) worldToMap(mx, my)
+
+    Reference:
+    """
     class CostValues(Enum):
         FreeSpace = 0
         InscribedInflated = 100
@@ -108,27 +90,74 @@ class OccupancyGrid2d():
     def __init__(self, map):
         self.map = map
 
-    def getCost(self, mx, my):
+    def getCost(self, mx: int, my: int) -> int:
+        """
+        Returns the cost (from CostValues) of the tile at (mx, my) occupancy
+        grid coordinates.
+
+        Params:
+            mx (int): x-coordinate on the occupancy grid
+            my (int): y-coordinate on the occupancy grid
+
+        Returns:
+            int: cost of the tile
+        """
         return self.map.data[self.__getIndex(mx, my)]
 
-    def getSize(self):
+    def getSize(self) -> tuple:
+        """
+        Returns:
+            tuple: (width, height) of the occupancy grid
+        """
         return (self.map.info.width, self.map.info.height)
 
-    def getSizeX(self):
+    def getSizeX(self) -> int:
+        """
+        Returns:
+            int: Width of the occupancy grid
+        """
         return self.map.info.width
 
-    def getSizeY(self):
+    def getSizeY(self) -> int:
+        """
+        Returns:
+            int: Height of the occupancy grid
+        """
         return self.map.info.height
 
-    def mapToWorld(self, mx, my):
+    def mapToWorld(self, mx: float, my: float) -> tuple:
+        """
+        Converts occupancy grid map (x, y) coordinates to their respective world
+        coordinates.
+
+        Params:
+            wx (float): occupancy grid x-coordinate
+            wy (float): occupancy grid y-coordinate
+
+        Returns:
+            tuple: (x, y) on the world map
+        """
         wx = self.map.info.origin.position.x + (mx + 0.5) * self.map.info.resolution
         wy = self.map.info.origin.position.y + (my + 0.5) * self.map.info.resolution
 
         return (wx, wy)
 
-    def worldToMap(self, wx, wy):
-        # if (wx < self.map.info.origin.position.x or wy < self.map.info.origin.position.y):
-        #     raise Exception("World coordinates out of bounds")
+    def worldToMap(self, wx: float, wy: float) -> tuple:
+        """
+        Converts world (x, y) coordinates to their respective map coordinates
+        on the occupancy grid
+
+        Params:
+            wx (float): world x-coordinate
+            wy (float): world y-coordinate
+
+        Raises:
+            Exception: Out-of-bounds if world coordinates do not map to an
+                        occupancy grid coordinate
+
+        Returns:
+            tuple: (x, y) on the occupancy grid
+        """
 
         mx = int((wx - self.map.info.origin.position.x) / self.map.info.resolution)
         my = int((wy - self.map.info.origin.position.y) / self.map.info.resolution)
@@ -141,45 +170,13 @@ class OccupancyGrid2d():
     def __getIndex(self, mx, my):
         return my * self.map.info.width + mx
 
-class FrontierCache():
-    """_summary_
-
-    Returns:
-        _type_: _description_
-    """
-    cache = {}
-
-    def getPoint(self, x, y):
-        idx = self.__cantorHash(x, y)
-
-        if idx in self.cache:
-            return self.cache[idx]
-
-        self.cache[idx] = FrontierPoint(x, y)
-        return self.cache[idx]
-
-    def __cantorHash(self, x, y):
-        return (((x + y) * (x + y + 1)) / 2) + y
-
-    def clear(self):
-        self.cache = {}
-
-    def __repr__(self) -> str:
-        return list(self.cache)
-        pass
-
-class FrontierPoint():
-    def __init__(self, x, y):
-        self.classification = 0
-        self.mapX = x
-        self.mapY = y
-
 def centroid(arr: list, costmap: OccupancyGrid2d) -> tuple:
     """
     Determines the coordinate of the centre of the array
 
-    Args:
-        arr (_type_): _description_
+    Params:
+        arr (list): list of (x, y) coordinates of frontier points
+        costmap (OccupancyGrid2d): costmap of the current environment
 
     Returns:
         tuple: the (x, y) coordinate of the centre point of the array
@@ -196,9 +193,20 @@ def centroid(arr: list, costmap: OccupancyGrid2d) -> tuple:
     # return new_x, new_y
     return sum_x/length, sum_y/length
 
-RADIUS = 0.22
+def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> tuple:
+    """
+    Checks for collisions based on the given centroid coordinates on the occupancy
+    grid and fixes it
+    Params:
+        costmap (OccupancyGrid2d): the occupancy grid of the environment
+        cx (int): x-coordinate on the occupancy grid
+        cy (int): y-coordinate on the occupancy grid
 
-def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> bool:
+    Returns:
+        tuple: (x, y) coordinates of the new centroid
+
+    Note: NOT USED
+    """
     ux = cx + 10
     lx = cx - 10
     uy = cy + 10
@@ -245,7 +253,7 @@ def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> bool:
     # return new centre point
     return ux - lx // 2, uy - ly // 2
 
-class WaypointFollowerTest(Node):
+class FronTEARCommander(Node):
 
     def __init__(self):
         super().__init__(node_name='nav2_waypoint_tester', namespace='')
@@ -294,41 +302,6 @@ class WaypointFollowerTest(Node):
 
         self.get_logger().info('Running FronTEAR_Commander...')
 
-
-    def move_to_frontier(self):
-        if self.costmap is None:
-            return
-
-        self.costmap_updated = False
-        self.tree = True
-        self.info_msg("Starting sleep...")
-        time.sleep(1)
-        self.info_msg("Awoken")
-        frontier = self.seggregate_frontiers(self.currentPose, self.costmap)
-        if frontier.empty():
-            print("No more frontiers")
-            self.is_complete = True
-            return
-
-        while not frontier.empty():
-            waypoint = centroid(frontier.get()[1], self.costmap)
-            wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
-            w = round(wp[0], 2), round(wp[1], 2)
-
-            if w not in self.explored_waypoints:
-                print(self.explored_waypoints)
-                self.explored_waypoints.append(w)
-                self.setWaypoints([wp])
-                print(f"Publishing waypoint: ({wp[0], wp[1]})")
-                self.pose.publish(self.waypoints[0])
-                return
-
-            print(f"frontier discarded: ({wp[0]}, {wp[1]})")
-        #     waypoint = waypoints.pop(0)
-        self.is_complete = True
-        print("All frontiers searched")
-        #self.moveToFrontiers()
-
     ### CALLBACK FUNCTIONS ####################################################
     def bt_log_callback(self, msg:BehaviorTreeLog):
         """ Behavior Tree Log Callback
@@ -362,15 +335,19 @@ class WaypointFollowerTest(Node):
 
     ### NEW BANANA CODE #######################################################
 
-    def get_waypoint(self, frontiers: PriorityQueue) -> PoseStamped:
-        new_waypoint = PoseStamped()
-        p = frontiers.get()
-        new_waypoint.pose.position.x = p[1][0]
-        new_waypoint.pose.position.y = p[1][1]
-
-        return new_waypoint
-
     def near_unknown(self, x: int, y: int, costmap: OccupancyGrid2d) -> bool:
+        """
+        Checks whether at least one point near (x, y) is an unknown point.
+
+        Params:
+            x (int): x-coordinate on the occupancy grid
+            y (int): y-coordinate on the occupancy grid
+            costmap (OccupancyGrid2d): the current costmap of the environment
+
+        Returns:
+            bool: True if near an unknown square (i.e. is a frontier), false
+                    otherwise.
+        """
         for i in range(-1, 1):
             for j in range(-1, 1):
                 value = costmap.getCost(x + i, y + j)
@@ -378,12 +355,24 @@ class WaypointFollowerTest(Node):
                     return True
         return False
 
-    def seggregate_frontiers(self, pose: PoseStamped, costmap: OccupancyGrid2d) -> PriorityQueue:
+    def seggregate_frontiers(self, costmap: OccupancyGrid2d) -> PriorityQueue:
+        """
+        Handles the frontier points, classifying them as good or shit waypoints,
+        then generates the clusters and adds them to a priority queue, where the
+        largest cluster has highest priority.
+
+        Params:
+            costmap (OccupancyGrid2d): _description_
+
+        Returns:
+            PriorityQueue: _description_
+        """
         self.shit_points = []
         self.good_points = []
         n_rows = costmap.getSizeX()
         n_cols = costmap.getSizeY()
 
+        # Divide good and shit points
         for i in range(n_rows):
             for j in range(n_cols):
                 value = costmap.getCost(i, j)
@@ -392,11 +381,13 @@ class WaypointFollowerTest(Node):
                 elif value == NOGO_SPACE and self.near_unknown(i, j, costmap):
                     self.shit_points.append((i, j))
         print("Number of good points: ", len(self.good_points))
+
         # Cluster the frontiers
         frontier_groups = PriorityQueue() # (length, frontiers[])
         count = 0
         largest = 0
         total_clusters = 0
+
         while len(self.good_points) > 0:
             point = self.good_points.pop(0)
             cluster = self.get_cluster(point)
@@ -404,18 +395,26 @@ class WaypointFollowerTest(Node):
             total_clusters += 1
             if (-1 * cluster_size < largest):
                 largest = -1 * cluster_size
+
             if cluster_size > 10:
                 print(f"cluster size: {-1 * cluster_size}")
                 frontier_groups.put((-1 * cluster_size, cluster))
                 count += 1
         print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
+
         return frontier_groups
 
     def get_cluster(self, point: tuple) -> list:
-        # if len(points) == 1:
-        #    if points[0] in self.good_points:
-        #        self.good_points.remove(points[0])
-        #        return points[0]
+        """
+        Constructs a cluster of good waypoints starting at a particular point.
+        If a waypoint is added to a cluster, it is removed from the good waypoints list.
+
+        Params:
+            point (tuple): (x, y) coordinates of the starting waypoint
+
+        Returns:
+            list: list of (x, y) waypoints in the cluster
+        """
         cluster = [point]
         nearby_points = set((a + point[0], b + point[1])
             for a in range(-2, 2, 1)
@@ -431,9 +430,44 @@ class WaypointFollowerTest(Node):
                 for b in range(-2, 2, 1):
                     if (a + p[0], b + p[1]) in self.good_points:
                         nearby_points.add((a + p[0], b + p[1]))
-        #print(cluster)
 
         return cluster
+
+    def move_to_frontier(self):
+        """
+        Handles the moving to the next frontier.
+        """
+        if self.costmap is None:
+            return
+
+        self.costmap_updated = False
+        self.tree = True
+        self.info_msg("Starting sleep...")
+        time.sleep(1)
+        self.info_msg("Awoken")
+        frontier = self.seggregate_frontiers(self.costmap)
+        if frontier.empty():
+            print("No more frontiers")
+            self.is_complete = True
+            return
+
+        while not frontier.empty():
+            waypoint = centroid(frontier.get()[1], self.costmap)
+            wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
+            w = round(wp[0], 2), round(wp[1], 2)
+
+            if w not in self.explored_waypoints:
+                print(self.explored_waypoints)
+                self.explored_waypoints.append(w)
+                self.setWaypoints([wp])
+                print(f"Publishing waypoint: ({wp[0], wp[1]})")
+                self.pose.publish(self.waypoints[0])
+                return
+
+            print(f"frontier discarded: ({wp[0]}, {wp[1]})")
+
+        self.is_complete = True
+        print("All frontiers searched")
 
     def dumpCostmap(self):
         """
@@ -509,13 +543,9 @@ class WaypointFollowerTest(Node):
 def main(argv=sys.argv[1:]):
     rclpy.init()
 
-    # wps = [[-0.52, -0.54], [0.58, -0.55], [0.58, 0.52]]
     starting_pose = [-1.0, -0.5]
 
-    # wps = [[-20.52, -20.54], [20.58, -20.55], [20.58, 20.52]]
-    # starting_pose = [-2.0, -2.0]
-
-    test = WaypointFollowerTest()
+    test = FronTEARCommander()
     goal_counter = 0
     #test.dumpCostmap()
     #test.setWaypoints(wps)
@@ -533,7 +563,6 @@ def main(argv=sys.argv[1:]):
         # test.info_msg('Getting initial map')
         # rclpy.spin_once(test, timeout_sec=1.0)
 
-    #test.moveToFrontiers()
     try:
         while rclpy.ok():
             # Your flag-checking logic here
