@@ -11,6 +11,7 @@ import sys
 import time
 import rclpy
 import numpy as np
+import math
 
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav2_msgs.srv import GetCostmap
@@ -355,7 +356,8 @@ class FronTEARCommander(Node):
         while len(self.good_points) > 0:
             point = self.good_points.pop(0)
             cluster = self.get_cluster(point)
-            cluster_size = len(cluster)
+            distance = self.calculate_proximity_score(self.currentPose, point)
+            cluster_size = len(cluster) - distance
             total_clusters += 1
             if (-1 * cluster_size < largest):
                 largest = -1 * cluster_size
@@ -364,7 +366,7 @@ class FronTEARCommander(Node):
                 # print(f"cluster size: {-1 * cluster_size}")
                 frontier_groups.put((-1 * cluster_size, cluster))
                 count += 1
-        print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
+        print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest size: {largest}, cluster size: {len(cluster)}, distance: {distance}")
 
         return frontier_groups
 
@@ -396,6 +398,14 @@ class FronTEARCommander(Node):
                         nearby_points.add((a + p[0], b + p[1]))
 
         return cluster
+    
+    def calculate_proximity_score(self, robot_pos, point):
+        x, y = robot_pos.position.x, robot_pos.position.y
+        px, py = point[0], point [1]
+
+        distance = math.sqrt((x - px)**2 + (y - py)**2)
+
+        return distance 
 
     def move_to_frontier(self):
         """
