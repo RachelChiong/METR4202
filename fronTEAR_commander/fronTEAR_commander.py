@@ -357,16 +357,17 @@ class FronTEARCommander(Node):
             point = self.good_points.pop(0)
             cluster = self.get_cluster(point)
             distance = self.calculate_proximity_score(self.currentPose, point)
-            cluster_size = len(cluster) - distance
+            prioritise = len(cluster) - distance
             total_clusters += 1
-            if (-1 * cluster_size < largest):
-                largest = -1 * cluster_size
+            if (-1 * prioritise < largest):
+                largest = -1 * prioritise
 
-            if cluster_size > 10:
-                # print(f"cluster size: {-1 * cluster_size}")
-                frontier_groups.put((-1 * cluster_size, cluster))
+            if len(cluster) > 10:
+                # print(f"cluster size: {-1 * prioritise}")
+                print (f"cluster: {len(cluster)}, distance:{distance}, prioritise: {-1 * prioritise} " )
+                frontier_groups.put((-1 * prioritise, cluster))
                 count += 1
-        print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest size: {largest}, cluster size: {len(cluster)}, distance: {distance}")
+        print(f"Frontier size: {count}, number of possible clusters: {total_clusters}")
 
         return frontier_groups
 
@@ -399,7 +400,18 @@ class FronTEARCommander(Node):
 
         return cluster
     
-    def calculate_proximity_score(self, robot_pos, point):
+    def calculate_proximity_score(self, robot_pos: PoseStamped.pose, point: tuple) -> float:
+        """
+        Calculates the distance of a frontier point from the robot's current position
+
+        Params:
+            robot_pos: (x, y, z) robot's curren pose - self.currentPose
+            point (tuple): (x, y) coordinates of the starting waypoint
+
+        Returns:
+            float: the method returns the float value representing the distance 
+        """
+
         x, y = robot_pos.position.x, robot_pos.position.y
         px, py = point[0], point [1]
 
@@ -426,6 +438,7 @@ class FronTEARCommander(Node):
             return
 
         while not frontier.empty():
+            print(f"selected:{frontier.get()[0]}")
             waypoint = centroid(frontier.get()[1], self.costmap)
             wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
             w = round(wp[0], 2), round(wp[1], 2)
@@ -435,6 +448,7 @@ class FronTEARCommander(Node):
                 self.explored_waypoints.append(w)
                 self.setWaypoints([wp])
                 print(f"Publishing waypoint: ({wp[0], wp[1]})")
+                print(f"\n")
                 self.pose.publish(self.waypoints[0])
                 return
 
