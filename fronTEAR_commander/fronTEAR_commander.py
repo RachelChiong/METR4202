@@ -9,37 +9,20 @@ Possible optimisation techniques:
 
 import sys
 import time
+import rclpy
+import numpy as np
 
-from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from nav2_msgs.action import FollowWaypoints
-from nav2_msgs.srv import ManageLifecycleNodes
 from nav2_msgs.srv import GetCostmap
-from nav2_msgs.msg import Costmap
 from nav_msgs.msg  import OccupancyGrid
 from nav_msgs.msg import Odometry
 from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
-import statistics
-
-import rclpy
-from rclpy.action import ActionClient
 from rclpy.node import Node
-from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
-from rclpy.qos import QoSProfile
-from rclpy.time import Duration
-from queue import SimpleQueue, PriorityQueue
-
+from queue import PriorityQueue
 from enum import Enum
 
-import numpy as np
-
-import math
-
-OCC_THRESHOLD = 50
-MIN_FRONTIER_SIZE = 30
 
 FREE_SPACE = 0
 NOGO_SPACE = 100
