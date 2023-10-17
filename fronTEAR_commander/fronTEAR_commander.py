@@ -363,7 +363,7 @@ class FronTEARCommander(Node):
                 largest = -1 * prioritise
 
             if len(cluster) > 10:
-                # print(f"cluster size: {-1 * prioritise}")
+                print(f"cluster size: {-1 * prioritise}")
                 print (f"cluster: {len(cluster)}, distance:{distance}, prioritise: {-1 * prioritise} " )
                 frontier_groups.put((-1 * prioritise, cluster))
                 count += 1
@@ -402,7 +402,7 @@ class FronTEARCommander(Node):
     
     def calculate_proximity_score(self, robot_pos: PoseStamped.pose, point: tuple) -> float:
         """
-        Calculates the distance of a frontier point from the robot's current position
+        Calculates the Manhattan distance of a frontier point from the robot's current position
 
         Params:
             robot_pos: (x, y, z) robot's curren pose - self.currentPose
@@ -415,7 +415,7 @@ class FronTEARCommander(Node):
         x, y = robot_pos.position.x, robot_pos.position.y
         px, py = point[0], point [1]
 
-        distance = math.sqrt((x - px)**2 + (y - py)**2)
+        distance = abs(x - px) + abs(y - py)
 
         return distance 
 
