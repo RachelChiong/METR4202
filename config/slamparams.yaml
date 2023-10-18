@@ -1,10 +1,10 @@
 slam_toolbox:
   ros_parameters:
     map_update_intervals: 0.01
-    loop_match_minimum_response_fine: 0.8
+    loop_match_minimum_response_fine: 0.2
     linear_update: 0.4
     angular_update: 0.1
   global_costmap:
     global_frame: map
     robot_base_frame: base_link
-    update_frequency: 100.0  # Set your desired update frequency in Hz
+    update_frequency: 200.0  # Set your desired update frequency in Hz

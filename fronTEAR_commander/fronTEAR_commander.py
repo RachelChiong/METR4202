@@ -22,6 +22,9 @@ from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
+
+from sensor_msgs.msg import CameraInfo, Image
+
 import statistics
 
 import rclpy
@@ -254,6 +257,7 @@ class FronTEARCommander(Node):
         self.costmap = None
         self.explored_waypoints = []
         self.costmap_updated = False
+        self.recover = False
 
         ### SUBSCRIBERS ###
         self.subscription = self.create_subscription(
@@ -274,6 +278,8 @@ class FronTEARCommander(Node):
         # self.costmapSub = self.create_subscription(Costmap(), '/global_costmap/costmap_raw', self.costmapCallback, 10)
         self.costmapSub = self.create_subscription(OccupancyGrid, '/map', self.occupancyGridCallback, 10)
 
+        self.camera_sub = self.create_subscription(Image, '/camera/image_raw', self.cameraCallback, 10)
+
         ### PUBLISHERS ###
         self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
                                                       'initialpose', 10)
@@ -285,6 +291,11 @@ class FronTEARCommander(Node):
         self.get_logger().info('Running FronTEAR_Commander...')
 
     ### CALLBACK FUNCTIONS ####################################################
+
+    def cameraCallback(self, msg):
+        # TODO: Implement later for A1
+        pass
+
     def bt_log_callback(self, msg:BehaviorTreeLog):
         """ Behavior Tree Log Callback
 
@@ -329,9 +340,12 @@ class FronTEARCommander(Node):
             bool: True if near an unknown square (i.e. is a frontier), false
                     otherwise.
         """
-        for i in range(-1, 1):
-            for j in range(-1, 1):
-                value = costmap.getCost(x + i, y + j)
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                try:
+                    value = costmap.getCost(x + i, y + j)
+                except IndexError:
+                    return False
                 if value == -1:
                     return True
         return False
@@ -352,6 +366,7 @@ class FronTEARCommander(Node):
         self.good_points = []
         n_rows = costmap.getSizeX()
         n_cols = costmap.getSizeY()
+        current_x, current_y = costmap.worldToMap(self.currentPose.position.x, self.currentPose.position.y)
 
         # Divide good and shit points
         for i in range(n_rows):
@@ -361,6 +376,7 @@ class FronTEARCommander(Node):
                     self.good_points.append((i, j))
                 elif value == NOGO_SPACE and self.near_unknown(i, j, costmap):
                     self.shit_points.append((i, j))
+        self.num_good_points = len(self.good_points)
         print("Number of good points: ", len(self.good_points))
 
         # Cluster the frontiers
@@ -368,18 +384,26 @@ class FronTEARCommander(Node):
         count = 0
         largest = 0
         total_clusters = 0
+        map_diam = math.sqrt(self.costmap.getSizeX()**2 + self.costmap.getSizeY()**2)
 
         while len(self.good_points) > 0:
             point = self.good_points.pop(0)
             cluster = self.get_cluster(point)
             cluster_size = len(cluster)
+            centre_x, centre_y = centroid(cluster, self.costmap)
+            euclid_distance = math.sqrt((abs(centre_x - current_x)**2 + abs(centre_y - current_y)**2))
+            manhattan_distance = abs(centre_x - current_x) + abs(centre_y - current_y)
             total_clusters += 1
             if (-1 * cluster_size < largest):
                 largest = -1 * cluster_size
 
-            if cluster_size > 10:
+            if cluster_size > 20:
+                print(f"Euclidean distance: {euclid_distance}, Manhattan distance: {manhattan_distance}, Cluster size: {cluster_size}, Weight: {(manhattan_distance*2) - (0.3 * cluster_size)}")
                 # print(f"cluster size: {-1 * cluster_size}")
-                frontier_groups.put((-1 * cluster_size, cluster))
+                # frontier_groups.put((-1 * cluster_size, cluster))
+                # frontier_groups.put(((manhattan_distance*2) - (0.3 * cluster_size), cluster))
+                frontier_groups.put((manhattan_distance, cluster))
+                # frontier_groups.put((-1 * cluster_size * (map_diam - euclid_distance), cluster))
                 count += 1
         print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
 
@@ -398,8 +422,8 @@ class FronTEARCommander(Node):
         """
         cluster = [point]
         nearby_points = set((a + point[0], b + point[1])
-            for a in range(-2, 2, 1)
-            for b in range(-2, 2, 1)
+            for a in range(-2, 3, 1)
+            for b in range(-2, 3, 1)
             if (a + point[0], b + point[1]) in self.good_points)
 
         while len(nearby_points) > 0:
@@ -407,8 +431,8 @@ class FronTEARCommander(Node):
             self.good_points.remove(p)
             cluster.append(p)
 
-            for a in range(-2, 2, 1):
-                for b in range(-2, 2, 1):
+            for a in range(-2, 3, 1):
+                for b in range(-2, 3, 1):
                     if (a + p[0], b + p[1]) in self.good_points:
                         nearby_points.add((a + p[0], b + p[1]))
 
@@ -432,8 +456,11 @@ class FronTEARCommander(Node):
             self.is_complete = True
             return
 
+        self.frontier_item = 0
+
         while not frontier.empty():
-            waypoint = centroid(frontier.get()[1], self.costmap)
+            self.frontier_item = frontier.get()
+            waypoint = centroid(self.frontier_item[1], self.costmap)
             wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
             w = round(wp[0], 2), round(wp[1], 2)
 
@@ -444,6 +471,23 @@ class FronTEARCommander(Node):
                 print(f"Publishing waypoint: ({wp[0], wp[1]})")
                 self.pose.publish(self.waypoints[0])
                 return
+
+        print(abs(self.frontier_item[0]))
+        if self.num_good_points > 50:
+            time.sleep(5)
+            print("Starting Recovery...")
+            #self.recover = True
+            #return
+            waypoint = centroid(self.frontier_item[1], self.costmap)
+            wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
+            w = round(wp[0], 2), round(wp[1], 2)
+
+            self.explored_waypoints.append(w)
+            self.setWaypoints([wp])
+            print(f"Publishing waypoint: ({wp[0], wp[1]})")
+            self.pose.publish(self.waypoints[0])
+            return
+
 
             print(f"frontier discarded: ({wp[0]}, {wp[1]})")
 
@@ -550,6 +594,12 @@ def main(argv=sys.argv[1:]):
             if goal_counter < commander.waypoint_counter:
                 commander.info_msg(f"Goals submitted: {commander.waypoint_counter}")
                 goal_counter += 1
+
+            if commander.recover:
+                print("Requested recovery")
+                commander.recover = False
+                commander.move_to_frontier()
+                rclpy.spin_once(commander)
 
             if commander.is_complete:
                 break  # Exit the loop to stop the node
