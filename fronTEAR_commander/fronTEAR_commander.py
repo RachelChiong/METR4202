@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 """
+Welcome to the bananas-kms branch (K-Means-Squared)
 Possible optimisation techniques:
     -   weighting the frontier clusters based on their proximity to the robot
         (currently goes back and forth prioritising biggest frontier)
@@ -10,36 +11,22 @@ Possible optimisation techniques:
 import sys
 import time
 
-from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from nav2_msgs.action import FollowWaypoints
-from nav2_msgs.srv import ManageLifecycleNodes
+from nav_msgs.msg  import OccupancyGrid, Odometry
 from nav2_msgs.srv import GetCostmap
-from nav2_msgs.msg import Costmap
-from nav_msgs.msg  import OccupancyGrid
-from nav_msgs.msg import Odometry
 from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
-
-from sensor_msgs.msg import CameraInfo, Image
-
-import statistics
-
+from sensor_msgs.msg import Image
 import rclpy
-from rclpy.action import ActionClient
 from rclpy.node import Node
-from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
-from rclpy.qos import QoSProfile
-from rclpy.time import Duration
-from queue import SimpleQueue, PriorityQueue
+from queue import PriorityQueue
 
 from enum import Enum
-
 import numpy as np
-
 import math
+from sklearn.cluster import KMeans
 
 OCC_THRESHOLD = 50
 MIN_FRONTIER_SIZE = 30
@@ -66,6 +53,8 @@ class OccupancyGrid2d():
 
     Reference:
     """
+    radius = 50
+
     class CostValues(Enum):
         FreeSpace = 0
         InscribedInflated = 100
@@ -74,6 +63,32 @@ class OccupancyGrid2d():
 
     def __init__(self, map):
         self.map = map
+
+    def getKMSTuples(self):
+
+        grid = []
+
+        for i in range(self.map.info.width):
+            for j in range(self.map.info.height):
+                world_x, world_y = self.mapToWorld(i, j)
+                grid.append((world_x, world_y, self.getCost(i, j)))
+        return grid
+
+    def getLocalKMSTuples(self, current_x: int, current_y: int):
+
+        grid = []
+
+        # Determine local costmap bounds
+        ux = current_x + self.radius if current_x + self.radius < self.map.info.width else self.map.info.width
+        lx = current_x - self.radius if current_x - self.radius >= 0 else 0
+        uy = current_y + self.radius if current_y + self.radius < self.map.info.height else self.map.info.height
+        ly = current_y - self.radius if current_y - self.radius >= 0 else 0
+
+        for i in range(lx, ux):
+            for j in range(ly, uy):
+                world_x, world_y = self.mapToWorld(i, j)
+                grid.append((world_x, world_y, self.getCost(i, j)))
+        return grid
 
     def getCost(self, mx: int, my: int) -> int:
         """
@@ -171,72 +186,7 @@ def centroid(arr: list, costmap: OccupancyGrid2d) -> tuple:
     sum_x = np.sum(arr[:, 0])
     sum_y = np.sum(arr[:, 1])
 
-    # cx = round(sum_x/length)
-    # cy = round(sum_y/length)
-    # new_x, new_y = check_for_collisions(costmap, cx, cy)
-    # print(f"original: ({cx}, {cy}), new: ({new_x}, {new_y})")
-    # return new_x, new_y
     return sum_x/length, sum_y/length
-
-def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> tuple:
-    """
-    Checks for collisions based on the given centroid coordinates on the occupancy
-    grid and fixes it
-    Params:
-        costmap (OccupancyGrid2d): the occupancy grid of the environment
-        cx (int): x-coordinate on the occupancy grid
-        cy (int): y-coordinate on the occupancy grid
-
-    Returns:
-        tuple: (x, y) coordinates of the new centroid
-
-    Note: NOT USED
-    """
-    ux = cx + 10
-    lx = cx - 10
-    uy = cy + 10
-    ly = cy - 10
-
-    shifts = [(-5, 0), (5, 0), (0, -5), (0, 5)]
-    # start left shift
-    while lx <= 0:
-        lx += 5
-        ux += 5
-    while ux > costmap.getSizeX():
-        lx -= 5
-        ux -= 5
-
-    while ly <= 0:
-        ly += 5
-        uy += 5
-    while uy > costmap.getSizeY():
-        ly -= 5
-        uy -= 5
-
-    valid = False
-    while not valid:
-        # check left edge
-        if costmap.getCost(lx, ly) == 100 or costmap.getCost(lx, uy) == 100:
-            lx += 5
-            ux += 5
-
-        elif costmap.getCost(ux, ly) == 100 or costmap.getCost(ux, uy) == 100:
-            lx -= 5
-            ux -= 5
-
-        elif costmap.getCost(lx, ly) == 100 or costmap.getCost(lx, uy) == 100:
-            ly += 5
-            uy += 5
-
-        elif costmap.getCost(ux, ly) == 100 or costmap.getCost(ux, uy) == 100:
-            ly -= 5
-            uy -= 5
-
-        else:
-            valid = True
-
-    # return new centre point
-    return ux - lx // 2, uy - ly // 2
 
 class FronTEARCommander(Node):
 
@@ -323,6 +273,8 @@ class FronTEARCommander(Node):
         """
       #  self.info_msg('Received amcl_pose')
         self.currentPose = msg.pose.pose
+        wx, wy = round(self.currentPose.position.x, 1), round(self.currentPose.position.y, 1)
+        self.add_explored_waypoints((wx, wy))
         self.initial_pose_received = True
 
     ### NEW BANANA CODE #######################################################
@@ -352,91 +304,56 @@ class FronTEARCommander(Node):
 
     def seggregate_frontiers(self, costmap: OccupancyGrid2d) -> PriorityQueue:
         """
-        Handles the frontier points, classifying them as good or shit waypoints,
-        then generates the clusters and adds them to a priority queue, where the
-        largest cluster has highest priority.
-
-        Params:
-            costmap (OccupancyGrid2d): _description_
-
-        Returns:
-            PriorityQueue: _description_
+        A new way to seggregate - but with KMS
         """
-        self.shit_points = []
-        self.good_points = []
-        n_rows = costmap.getSizeX()
-        n_cols = costmap.getSizeY()
         current_x, current_y = costmap.worldToMap(self.currentPose.position.x, self.currentPose.position.y)
+        # kmsTuples = costmap.getKMSTuples()
+        kmsTuples = costmap.getLocalKMSTuples(current_x, current_y)
+        kmeans = KMeans(n_clusters=12)
+        kmeans.fit(kmsTuples)
+        print("KMS Clusters: ", kmeans, kmeans.cluster_centers_)
 
-        # Divide good and shit points
-        for i in range(n_rows):
-            for j in range(n_cols):
-                value = costmap.getCost(i, j)
-                if value == FREE_SPACE and self.near_unknown(i, j, costmap):
-                    self.good_points.append((i, j))
-                elif value == NOGO_SPACE and self.near_unknown(i, j, costmap):
-                    self.shit_points.append((i, j))
-        self.num_good_points = len(self.good_points)
-        print("Number of good points: ", len(self.good_points))
-
-        # Cluster the frontiers
         frontier_groups = PriorityQueue() # (length, frontiers[])
-        count = 0
-        largest = 0
-        total_clusters = 0
-        map_diam = math.sqrt(self.costmap.getSizeX()**2 + self.costmap.getSizeY()**2)
+        min_cost = float('inf')
+        for center in kmeans.cluster_centers_:
+            cluster_x, cluster_y, _ = center
+            map_cluster = costmap.worldToMap(cluster_x, cluster_y)
+            manhattan = abs(map_cluster[0] - current_x) + abs(map_cluster[1] - current_y)
+            if manhattan < 5 or (round(cluster_x, 1), round(cluster_y, 1)) in self.explored_waypoints:
+                continue
+            cost = self.calculate_cost(costmap, current_x, current_y, map_cluster[0], map_cluster[1])
+            if cost < min_cost:
+                min_cost = cost
 
-        while len(self.good_points) > 0:
-            point = self.good_points.pop(0)
-            cluster = self.get_cluster(point)
-            cluster_size = len(cluster)
-            centre_x, centre_y = centroid(cluster, self.costmap)
-            euclid_distance = math.sqrt((abs(centre_x - current_x)**2 + abs(centre_y - current_y)**2))
-            manhattan_distance = abs(centre_x - current_x) + abs(centre_y - current_y)
-            total_clusters += 1
-            if (-1 * cluster_size < largest):
-                largest = -1 * cluster_size
+            print(f"({cluster_x}, {cluster_y}, cost: {cost}, distance: {manhattan})")
+            frontier_groups.put((cost, (cluster_x, cluster_y)))
 
-            if cluster_size > 20:
-                print(f"Euclidean distance: {euclid_distance}, Manhattan distance: {manhattan_distance}, Cluster size: {cluster_size}, Weight: {(manhattan_distance*2) - (0.3 * cluster_size)}")
-                # print(f"cluster size: {-1 * cluster_size}")
-                # frontier_groups.put((-1 * cluster_size, cluster))
-                # frontier_groups.put(((manhattan_distance*2) - (0.3 * cluster_size), cluster))
-                frontier_groups.put((manhattan_distance, cluster))
-                # frontier_groups.put((-1 * cluster_size * (map_diam - euclid_distance), cluster))
-                count += 1
-        print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
-
+        # if min_cost > 1000:
+        #     frontier_groups = self.seggregate_frontiers(costmap)
         return frontier_groups
 
-    def get_cluster(self, point: tuple) -> list:
-        """
-        Constructs a cluster of good waypoints starting at a particular point.
-        If a waypoint is added to a cluster, it is removed from the good waypoints list.
+    def calculate_cost(self, costmap: OccupancyGrid2d, start_x: int, start_y: int, end_x: int, end_y: int) -> float:
 
-        Params:
-            point (tuple): (x, y) coordinates of the starting waypoint
+        num_points = int(math.sqrt((end_x - start_x)**2 + (end_y - start_y)**2))
+        print(f"Distance points: {num_points}")
+        cost = 0
+        # Linear interpolation to find the points
+        for i in range(num_points + 1):
+            t = i / num_points
+            x = round(start_x + t * (end_x - start_x))
+            y = round(start_y + t * (end_y - start_y))
+            cost_temp = costmap.getCost(x, y)
 
-        Returns:
-            list: list of (x, y) waypoints in the cluster
-        """
-        cluster = [point]
-        nearby_points = set((a + point[0], b + point[1])
-            for a in range(-2, 3, 1)
-            for b in range(-2, 3, 1)
-            if (a + point[0], b + point[1]) in self.good_points)
+            if cost_temp == -1:
+                cost_temp = -10
+            elif cost_temp == 100:
+                cost_temp = 100
+            print(cost_temp)
 
-        while len(nearby_points) > 0:
-            p = nearby_points.pop()
-            self.good_points.remove(p)
-            cluster.append(p)
+            cost += cost_temp
 
-            for a in range(-2, 3, 1):
-                for b in range(-2, 3, 1):
-                    if (a + p[0], b + p[1]) in self.good_points:
-                        nearby_points.add((a + p[0], b + p[1]))
+        return cost
 
-        return cluster
 
     def move_to_frontier(self):
         """
@@ -460,24 +377,27 @@ class FronTEARCommander(Node):
 
         while not frontier.empty():
             self.frontier_item = frontier.get()
-            waypoint = centroid(self.frontier_item[1], self.costmap)
-            wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
-            w = round(wp[0], 2), round(wp[1], 2)
+            wp = (self.frontier_item[1][0], self.frontier_item[1][1])
+            w = round(wp[0], 1), round(wp[1], 1)
+
+            print(f"cost: {self.frontier_item[0]} Going to: ({w[0]}, {w[1]})")
 
             if w not in self.explored_waypoints:
-                print(self.explored_waypoints)
+                # print(self.explored_waypoints)
+                self.add_explored_waypoints(w)
                 self.explored_waypoints.append(w)
                 self.setWaypoints([wp])
                 print(f"Publishing waypoint: ({wp[0], wp[1]})")
                 self.pose.publish(self.waypoints[0])
                 return
+            print("Moving to next waypoint...")
 
         print(abs(self.frontier_item[0]))
         if self.num_good_points > 50:
             time.sleep(5)
             print("Starting Recovery...")
-            #self.recover = True
-            #return
+            self.recover = True
+            return
             waypoint = centroid(self.frontier_item[1], self.costmap)
             wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
             w = round(wp[0], 2), round(wp[1], 2)
@@ -493,6 +413,13 @@ class FronTEARCommander(Node):
 
         self.is_complete = True
         print("All frontiers searched")
+
+    def add_explored_waypoints(self, waypoint: tuple) -> None:
+        offsets = (-0.1, 0, 0.1)
+        for offset_x in offsets:
+            for offset_y in offsets:
+                self.explored_waypoints.append((round(waypoint[0] + offset_x, 1), round(waypoint[1] + offset_y, 1)))
+
 
     def dumpCostmap(self):
         """
