@@ -10,30 +10,19 @@ Possible optimisation techniques:
 import sys
 import time
 
-from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from nav2_msgs.action import FollowWaypoints
-from nav2_msgs.srv import ManageLifecycleNodes
 from nav2_msgs.srv import GetCostmap
-from nav2_msgs.msg import Costmap
 from nav_msgs.msg  import OccupancyGrid
 from nav_msgs.msg import Odometry
 from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
 
-from sensor_msgs.msg import CameraInfo, Image
-
-import statistics
+from sensor_msgs.msg import Image
 
 import rclpy
-from rclpy.action import ActionClient
 from rclpy.node import Node
-from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
-from rclpy.qos import QoSProfile
-from rclpy.time import Duration
-from queue import SimpleQueue, PriorityQueue
+from queue import PriorityQueue
 
 from enum import Enum
 
@@ -281,8 +270,8 @@ class FronTEARCommander(Node):
         self.camera_sub = self.create_subscription(Image, '/camera/image_raw', self.cameraCallback, 10)
 
         ### PUBLISHERS ###
-        self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
-                                                      'initialpose', 10)
+        # self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
+                                                    #   'initialpose', 10)
 
         self.pose = self.create_publisher(PoseStamped,'goal_pose',10)
 
@@ -577,12 +566,12 @@ def main(argv=sys.argv[1:]):
 
     retry_count = 0
     retries = 2
-    while not commander.initial_pose_received and retry_count <= retries:
-        retry_count += 1
-        commander.info_msg('Setting initial pose')
-        commander.setInitialPose(starting_pose)
-        commander.info_msg('Waiting for amcl_pose to be received')
-        rclpy.spin_once(commander, timeout_sec=1.0)  # wait for poseCallback
+    # while not commander.initial_pose_received and retry_count <= retries:
+    #     retry_count += 1
+    #     commander.info_msg('Setting initial pose')
+    #     commander.setInitialPose(starting_pose)
+    #     commander.info_msg('Waiting for amcl_pose to be received')
+    #     rclpy.spin_once(commander, timeout_sec=1.0)  # wait for poseCallback
 
     # while commander.costmap == None:
         # commander.info_msg('Getting initial map')
