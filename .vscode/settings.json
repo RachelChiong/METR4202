@@ -1,0 +1,30 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/bohm/4202/team05_ws/install/fronTEAR_commander/lib/python3.10/site-packages",
+        "/home/bohm/4202/team11_ws/install/exploration_pkg/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/waypoint_commander_4team/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/waypoint_commander/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/navigation_commander/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/m4202_py_pkg/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/frontier_explorer/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/fronTEAR_commander/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/explore/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/exploration_pkg/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/bohm/4202/team05_ws/install/fronTEAR_commander/lib/python3.10/site-packages",
+        "/home/bohm/4202/team11_ws/install/exploration_pkg/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/waypoint_commander_4team/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/waypoint_commander/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/navigation_commander/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/m4202_py_pkg/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/frontier_explorer/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/fronTEAR_commander/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/explore/lib/python3.10/site-packages",
+        "/home/bohm/ros2_ws/install/exploration_pkg/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

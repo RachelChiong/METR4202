@@ -510,6 +510,9 @@ def main(argv=sys.argv[1:]):
     starting_pose = [-1.0, -0.5]
 
     commander = FronTEARCommander()
+    commander.initial_pose_received = False
+
+    print("Commander created")
     goal_counter = 0
     #commander.dumpCostmap()
     #commander.setWaypoints(wps)
@@ -520,7 +523,6 @@ def main(argv=sys.argv[1:]):
         retry_count += 1
         commander.info_msg('Setting initial pose')
         commander.setInitialPose(starting_pose)
-        commander.info_msg('Waiting for amcl_pose to be received')
         rclpy.spin_once(commander, timeout_sec=1.0)  # wait for poseCallback
 
     # while commander.costmap == None:
