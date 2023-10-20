@@ -27,7 +27,7 @@ source /opt/ros/humble/setup.bash
 ## Open the world and SLAM (simulation)
 ```
 ros2 launch turtlebot3_gazebo [WORLD_NAME].py
-ros2 launch turtlebot3_navigation2 navigation2.launch.py slam:=True slam_params_file:=config/slamparams.yaml
+ros2 launch turtlebot3_navigation2 navigation2.launch.py slam:=True
 ```
 ## Open the world and SLAM (hardware) 
 ```
