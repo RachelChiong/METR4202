@@ -1,37 +1,39 @@
 #! /usr/bin/env python3
 """
-Possible optimisation techniques:
-    -   weighting the frontier clusters based on their proximity to the robot
-        (currently goes back and forth prioritising biggest frontier)
-    -   Changing costmap frontier scope to be more local to the robot
-    -   not storing the shit points and reducing double counting
+FronTEAR_commander.py
+
+Main file which compiles the frontier exploration modules to be deployed as a
+ROS2 package.
+
+This package uses Nav2 for use in ROS2
+
+Author:
+    METR4202 Sem 2 2023 Team 5
+
+Recognition:
+    Special thanks to Franklin 'Frankie' the Waffle-Pi for being our test
+    subject.
 """
 
 import sys
 import time
+import rclpy
+import numpy as np
+import math
 
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from nav2_msgs.srv import GetCostmap
-from nav_msgs.msg  import OccupancyGrid
-from nav_msgs.msg import Odometry
+from nav_msgs.msg  import OccupancyGrid, Odometry
 from nav2_msgs.msg import BehaviorTreeLog
 from nav2_simple_commander.robot_navigator import *
 from geometry_msgs.msg import Twist
-
 from sensor_msgs.msg import Image
-
-import rclpy
 from rclpy.node import Node
 from queue import PriorityQueue
-
 from enum import Enum
 
-import numpy as np
-
-import math
-
 OCC_THRESHOLD = 50
-MIN_FRONTIER_SIZE = 30
+MIN_FRONTIER_SIZE = 20
 
 FREE_SPACE = 0
 NOGO_SPACE = 100
@@ -53,7 +55,10 @@ class OccupancyGrid2d():
         (+) mapToWorld(mx, my)
         (+) worldToMap(mx, my)
 
-    Reference:
+    Reference
+        SeanReg - nav2_wavefront_frontier_exploration Repo
+        https://github.com/SeanReg/nav2_wavefront_frontier_exploration
+
     """
     class CostValues(Enum):
         FreeSpace = 0
@@ -62,6 +67,10 @@ class OccupancyGrid2d():
         NoInformation = -1
 
     def __init__(self, map):
+        """
+        Initialises the occupancy grid by taking the OccupancyGrid from a
+        map subscription callback function.
+        """
         self.map = map
 
     def getCost(self, mx: int, my: int) -> int:
@@ -160,89 +169,31 @@ def centroid(arr: list, costmap: OccupancyGrid2d) -> tuple:
     sum_x = np.sum(arr[:, 0])
     sum_y = np.sum(arr[:, 1])
 
-    # cx = round(sum_x/length)
-    # cy = round(sum_y/length)
-    # new_x, new_y = check_for_collisions(costmap, cx, cy)
-    # print(f"original: ({cx}, {cy}), new: ({new_x}, {new_y})")
-    # return new_x, new_y
     return sum_x/length, sum_y/length
 
-def check_for_collisions(costmap: OccupancyGrid2d, cx: int, cy: int) -> tuple:
-    """
-    Checks for collisions based on the given centroid coordinates on the occupancy
-    grid and fixes it
-    Params:
-        costmap (OccupancyGrid2d): the occupancy grid of the environment
-        cx (int): x-coordinate on the occupancy grid
-        cy (int): y-coordinate on the occupancy grid
-
-    Returns:
-        tuple: (x, y) coordinates of the new centroid
-
-    Note: NOT USED
-    """
-    ux = cx + 10
-    lx = cx - 10
-    uy = cy + 10
-    ly = cy - 10
-
-    shifts = [(-5, 0), (5, 0), (0, -5), (0, 5)]
-    # start left shift
-    while lx <= 0:
-        lx += 5
-        ux += 5
-    while ux > costmap.getSizeX():
-        lx -= 5
-        ux -= 5
-
-    while ly <= 0:
-        ly += 5
-        uy += 5
-    while uy > costmap.getSizeY():
-        ly -= 5
-        uy -= 5
-
-    valid = False
-    while not valid:
-        # check left edge
-        if costmap.getCost(lx, ly) == 100 or costmap.getCost(lx, uy) == 100:
-            lx += 5
-            ux += 5
-
-        elif costmap.getCost(ux, ly) == 100 or costmap.getCost(ux, uy) == 100:
-            lx -= 5
-            ux -= 5
-
-        elif costmap.getCost(lx, ly) == 100 or costmap.getCost(lx, uy) == 100:
-            ly += 5
-            uy += 5
-
-        elif costmap.getCost(ux, ly) == 100 or costmap.getCost(ux, uy) == 100:
-            ly -= 5
-            uy -= 5
-
-        else:
-            valid = True
-
-    # return new centre point
-    return ux - lx // 2, uy - ly // 2
-
 class FronTEARCommander(Node):
+    """
+    Main node for frontier exploration.
+
+    Methods:
+        (+) nearUnknown() - identifies if near unknown points
+        (+) seggregateFrontiers() - generates priority queue of cluster
+        (+) getCluster() - determines the cluster from given point
+        (+) moveToFrontier() - calls seggregateFrontiers and setWaypoints
+        (+) setWaypoints() - adds the new waypoint(s) to the queue for publishing
+
+    """
 
     def __init__(self):
         super().__init__(node_name='nav2_waypoint_commanderer', namespace='')
 
         ### VARIABLES ###
-        self.visitedf = []
         self.waypoints = None
-        self.readyToMove = True
         self.currentPose = None
-        self.lastWaypoint = None
         self.waypoint_counter = 0
         self.is_complete = False
         self.tree = False
         self.initial_pose_received = False
-        self.goal_handle = None
         self.costmap = None
         self.explored_waypoints = []
         self.costmap_updated = False
@@ -252,27 +203,25 @@ class FronTEARCommander(Node):
         self.subscription = self.create_subscription(
             BehaviorTreeLog,
             'behavior_tree_log',
-            self.bt_log_callback,
+            self.btLogCallback,
             10)
 
-
-        self.costmapClient = self.create_client(GetCostmap, '/global_costmap/get_costmap')
+        self.costmapClient = self.create_client(GetCostmap,
+                                                '/global_costmap/get_costmap')
         while not self.costmapClient.wait_for_service(timeout_sec=1.0):
             self.info_msg('service not available, waiting again...')
 
         self.model_pose_sub = self.create_subscription(Odometry,
-                                                       '/odom', self.poseCallback, 10)
-        # self.costmap_update_sub = self.create_subscription(Costmap, self.costmapUpdateCallback, '/global_')
+                                                       '/odom',
+                                                       self.poseCallback,
+                                                       10)
 
-        # self.costmapSub = self.create_subscription(Costmap(), '/global_costmap/costmap_raw', self.costmapCallback, 10)
-        self.costmapSub = self.create_subscription(OccupancyGrid, '/map', self.occupancyGridCallback, 10)
-
-        self.camera_sub = self.create_subscription(Image, '/camera/image_raw', self.cameraCallback, 10)
+        self.costmapSub = self.create_subscription(OccupancyGrid,
+                                                   '/map',
+                                                   self.occupancyGridCallback,
+                                                   10)
 
         ### PUBLISHERS ###
-        # self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped,
-                                                    #   'initialpose', 10)
-
         self.pose = self.create_publisher(PoseStamped,'goal_pose',10)
 
         self.twist_pub = self.create_publisher(Twist, '/cmd_vel', 10)
@@ -281,11 +230,7 @@ class FronTEARCommander(Node):
 
     ### CALLBACK FUNCTIONS ####################################################
 
-    def cameraCallback(self, msg):
-        # TODO: Implement later for A1
-        pass
-
-    def bt_log_callback(self, msg:BehaviorTreeLog):
+    def btLogCallback(self, msg:BehaviorTreeLog):
         """ Behavior Tree Log Callback
 
         Checks whether the robot is in an IDLE state and moves to to the frontier.
@@ -295,7 +240,7 @@ class FronTEARCommander(Node):
         for event in msg.event_log:
             if event.node_name == 'NavigateRecovery' and \
                 event.current_status == 'IDLE':
-                self.move_to_frontier()
+                self.moveToFrontier()
 
         self.tree = False
 
@@ -310,11 +255,8 @@ class FronTEARCommander(Node):
         """
         Updates the current pose
         """
-      #  self.info_msg('Received amcl_pose')
         self.currentPose = msg.pose.pose
         self.initial_pose_received = True
-
-    ### NEW BANANA CODE #######################################################
 
     def near_unknown(self, x: int, y: int, costmap: OccupancyGrid2d) -> bool:
         """
@@ -339,7 +281,7 @@ class FronTEARCommander(Node):
                     return True
         return False
 
-    def seggregate_frontiers(self, costmap: OccupancyGrid2d) -> PriorityQueue:
+    def seggregateFrontiers(self, costmap: OccupancyGrid2d) -> PriorityQueue:
         """
         Handles the frontier points, classifying them as good or shit waypoints,
         then generates the clusters and adds them to a priority queue, where the
@@ -373,11 +315,10 @@ class FronTEARCommander(Node):
         count = 0
         largest = 0
         total_clusters = 0
-        map_diam = math.sqrt(self.costmap.getSizeX()**2 + self.costmap.getSizeY()**2)
 
         while len(self.good_points) > 0:
             point = self.good_points.pop(0)
-            cluster = self.get_cluster(point)
+            cluster = self.getCluster(point)
             cluster_size = len(cluster)
             centre_x, centre_y = centroid(cluster, self.costmap)
             euclid_distance = math.sqrt((abs(centre_x - current_x)**2 + abs(centre_y - current_y)**2))
@@ -386,22 +327,23 @@ class FronTEARCommander(Node):
             if (-1 * cluster_size < largest):
                 largest = -1 * cluster_size
 
-            if cluster_size > 20:
+            # Do not search clusters that are too small
+            if cluster_size > MIN_FRONTIER_SIZE:
                 print(f"Euclidean distance: {euclid_distance}, Manhattan distance: {manhattan_distance}, Cluster size: {cluster_size}, Weight: {(manhattan_distance*2) - (0.3 * cluster_size)}")
-                # print(f"cluster size: {-1 * cluster_size}")
-                # frontier_groups.put((-1 * cluster_size, cluster))
-                # frontier_groups.put(((manhattan_distance*2) - (0.3 * cluster_size), cluster))
                 frontier_groups.put((manhattan_distance, cluster))
-                # frontier_groups.put((-1 * cluster_size * (map_diam - euclid_distance), cluster))
                 count += 1
         print(f"Frontier size: {count}, number of possible clusters: {total_clusters}, largest cluster size: {largest}")
 
         return frontier_groups
 
-    def get_cluster(self, point: tuple) -> list:
+    def getCluster(self, point: tuple) -> list:
         """
-        Constructs a cluster of good waypoints starting at a particular point.
+        Constructs a cluster of good waypoints starting at a particular point,
+        using bread-first search (BFS).
         If a waypoint is added to a cluster, it is removed from the good waypoints list.
+
+        Nearby points are defined as good points that are within a 5x5 grid
+        from the robot's current position.
 
         Params:
             point (tuple): (x, y) coordinates of the starting waypoint
@@ -427,34 +369,45 @@ class FronTEARCommander(Node):
 
         return cluster
 
-    def move_to_frontier(self):
+    def moveToFrontier(self):
         """
         Handles the moving to the next frontier.
         """
+
+        # Do nothing when costmap is not loaded
         if self.costmap is None:
             return
 
+        self.frontier_item = 0
         self.costmap_updated = False
         self.tree = True
+
+        # Start sleep to give map time to update
         self.info_msg("Starting sleep...")
         time.sleep(1)
         self.info_msg("Awoken")
-        frontier = self.seggregate_frontiers(self.costmap)
+
+        # Create the clusters and get the priority queue of the clusters
+        frontier = self.seggregateFrontiers(self.costmap)
+
+        # If frontier is empty, end exploration
         if frontier.empty():
             print("No more frontiers")
             self.is_complete = True
             return
 
-        self.frontier_item = 0
-
+        # Loop through frontiers in the frontier priority queue until an
+        # un-traversed waypoint is found
         while not frontier.empty():
             self.frontier_item = frontier.get()
             waypoint = centroid(self.frontier_item[1], self.costmap)
+
+            # Get the world coordinates
             wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
             w = round(wp[0], 2), round(wp[1], 2)
 
+            # Check if waypoint created is already explored
             if w not in self.explored_waypoints:
-                print(self.explored_waypoints)
                 self.explored_waypoints.append(w)
                 self.setWaypoints([wp])
                 print(f"Publishing waypoint: ({wp[0], wp[1]})")
@@ -462,11 +415,12 @@ class FronTEARCommander(Node):
                 return
 
         print(abs(self.frontier_item[0]))
+
+        # If there are more frontiers but exploration is complete, send it to
+        # the last waypoint
         if self.num_good_points > 50:
             time.sleep(5)
             print("Starting Recovery...")
-            #self.recover = True
-            #return
             waypoint = centroid(self.frontier_item[1], self.costmap)
             wp = self.costmap.mapToWorld(waypoint[0], waypoint[1])
             w = round(wp[0], 2), round(wp[1], 2)
@@ -477,45 +431,8 @@ class FronTEARCommander(Node):
             self.pose.publish(self.waypoints[0])
             return
 
-
-            print(f"frontier discarded: ({wp[0]}, {wp[1]})")
-
         self.is_complete = True
         print("All frontiers searched")
-
-    def dumpCostmap(self):
-        """
-        Requests costmap data (not used)
-        """
-        costmapReq = GetCostmap.Request()
-        self.get_logger().info('Requesting Costmap')
-        costmap = self.costmapClient.call(costmapReq)
-        self.get_logger().info(f'costmap resolution {costmap.specs.resolution}')
-
-    def setInitialPose(self, pose):
-        """
-        Sets the initial pose
-
-        Params:
-            pose (tuple): takes a tuple containing (x, y) of the inital pose
-        """
-        self.init_pose = PoseWithCovarianceStamped()
-        self.init_pose.pose.pose.position.x = pose[0]
-        self.init_pose.pose.pose.position.y = pose[1]
-        self.init_pose.header.frame_id = 'map'
-        self.currentPose = self.init_pose.pose.pose
-        #self.publishInitialPose()
-        #time.sleep(5)
-
-        self.init_pose1 = PoseStamped()
-        self.init_pose1.pose.position.x = pose[0]
-        self.init_pose1.pose.position.y = pose[1]
-        self.init_pose1.header.frame_id = 'map'
-        self.currentPose = self.init_pose1.pose
-        self.publishInitialPose()
-        self.pose.publish(self.init_pose1)
-        time.sleep(5)
-
 
     def setWaypoints(self, waypoints: list) -> None:
         """
@@ -533,15 +450,7 @@ class FronTEARCommander(Node):
             msg.header.frame_id = 'map'
             msg.pose.position.x = wp[0]
             msg.pose.position.y = wp[1]
-           # msg.pose.orientation.w = 1.0
             self.waypoints.append(msg)
-
-    def publishInitialPose(self):
-        """
-        Publishes the initial pose
-        """
-        #self.pose.publish(self.init_pose)
-        self.initial_pose_pub.publish(self.init_pose)
 
 
     def info_msg(self, msg: str):
@@ -557,25 +466,8 @@ class FronTEARCommander(Node):
 def main(argv=sys.argv[1:]):
     rclpy.init()
 
-    starting_pose = [-1.0, -0.5]
-
     commander = FronTEARCommander()
     goal_counter = 0
-    #commander.dumpCostmap()
-    #commander.setWaypoints(wps)
-
-    retry_count = 0
-    retries = 2
-    # while not commander.initial_pose_received and retry_count <= retries:
-    #     retry_count += 1
-    #     commander.info_msg('Setting initial pose')
-    #     commander.setInitialPose(starting_pose)
-    #     commander.info_msg('Waiting for amcl_pose to be received')
-    #     rclpy.spin_once(commander, timeout_sec=1.0)  # wait for poseCallback
-
-    # while commander.costmap == None:
-        # commander.info_msg('Getting initial map')
-        # rclpy.spin_once(commander, timeout_sec=1.0)
 
     try:
         while rclpy.ok():
@@ -587,10 +479,11 @@ def main(argv=sys.argv[1:]):
             if commander.recover:
                 print("Requested recovery")
                 commander.recover = False
-                commander.move_to_frontier()
+                commander.moveToFrontier()
                 rclpy.spin_once(commander)
 
             if commander.is_complete:
+                print(f"Sent {goal_counter} waypoints.")
                 break  # Exit the loop to stop the node
             rclpy.spin_once(commander)
 
