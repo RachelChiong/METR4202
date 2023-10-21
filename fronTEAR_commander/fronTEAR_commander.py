@@ -200,6 +200,8 @@ class FronTEARCommander(Node):
         self.recover = False
 
         ### SUBSCRIBERS ###
+        # todo: 
+
         self.subscription = self.create_subscription(
             BehaviorTreeLog,
             'behavior_tree_log',
