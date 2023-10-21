@@ -208,8 +208,9 @@ class ArucoNode(rclpy.node.Node):
 
             self.poses_pub.publish(pose_array)
             self.markers_pub.publish(markers)
-            # print(markers)
-            # print(pose_array)
+            if markers is not None:
+                print ("Marker has been detected!")
+
 
 
 def main():
