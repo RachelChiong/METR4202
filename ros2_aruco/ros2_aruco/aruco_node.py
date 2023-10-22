@@ -22,8 +22,7 @@ Parameters:
     camera_info_topic - camera info topic to subscribe to
                          (default /camera/camera_info)
 
-Author: Nathan Sprague
-Version: 10/26/2020
+Original Repo Author: Nathan Sprague 10/26/2020
 
 """
 
@@ -48,7 +47,6 @@ class ArucoNode(rclpy.node.Node):
         # Declare and read parameters
         self.declare_parameter(
             name="marker_size",
-            # value=0.0625,
             value=0.01,
             descriptor=ParameterDescriptor(
                 type=ParameterType.PARAMETER_DOUBLE,
@@ -119,7 +117,7 @@ class ArucoNode(rclpy.node.Node):
         # Make sure we have a valid dictionary id:
         try:
             dictionary_id = cv2.aruco.__getattribute__(dictionary_id_name)
-            if type(dictionary_id) != type(cv2.aruco.DICT_5X5_100):
+            if type(dictionary_id) != type(cv2.aruco.DICT_6X6_100):
                 raise AttributeError
         except AttributeError:
             self.get_logger().error(
@@ -146,6 +144,7 @@ class ArucoNode(rclpy.node.Node):
         self.intrinsic_mat = None
         self.distortion = None
 
+        # Set up ArUco dictionary collection
         self.aruco_dictionary = cv2.aruco.getPredefinedDictionary(dictionary_id)
         self.aruco_parameters = cv2.aruco.DetectorParameters()
         self.bridge = CvBridge()
@@ -158,11 +157,15 @@ class ArucoNode(rclpy.node.Node):
         self.destroy_subscription(self.info_sub)
 
     def image_callback(self, img_msg):
+       # Check whether camera information can be accessed
         if self.info_msg is None:
             self.get_logger().warn("No camera info has been received!")
             return
 
+        # Conver the ArUco markers into greyscale
         cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="mono8")
+        # Store ArUco Marker information
+       
         markers = ArucoMarkers()
         pose_array = PoseArray()
         if self.camera_frame == "":
@@ -178,6 +181,8 @@ class ArucoNode(rclpy.node.Node):
         corners, marker_ids, rejected = cv2.aruco.detectMarkers(
             cv_image, self.aruco_dictionary, parameters=self.aruco_parameters
         )
+       
+        # Store the rotation and translation vectors from ths pose readings
         if marker_ids is not None:
             if cv2.__version__ > "4.0.0":
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
@@ -187,6 +192,8 @@ class ArucoNode(rclpy.node.Node):
                 rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(
                     corners, self.marker_size, self.intrinsic_mat, self.distortion
                 )
+
+            # Determine the position and orientation of each detected ArUco Marker
             for i, marker_id in enumerate(marker_ids):
                 pose = Pose()
                 pose.position.x = tvecs[i][0][0]
@@ -205,13 +212,13 @@ class ArucoNode(rclpy.node.Node):
                 pose_array.poses.append(pose)
                 markers.poses.append(pose)
                 markers.marker_ids.append(marker_id[0])
-
+            # Publish the pose and marker 
             self.poses_pub.publish(pose_array)
             self.markers_pub.publish(markers)
+           
+            # Notify operator if a marker has beenn detected
             if markers is not None:
                 print ("Marker has been detected!")
-
-
 
 def main():
     rclpy.init()
