@@ -23,7 +23,7 @@ pip install numpy
 cd ~/turtlebot3_ws/src
 git clone <link>
 cd ~/turtlebot3_ws/
-colcon build --symlink-install 
+colcon build --symlink-install --packages-select fronTEAR_commander ros2_aruco ros2_aruco_interfaces
 ```
 Then, source:
 ```
@@ -50,12 +50,12 @@ ros2 launch ros2_aruco aruco_recognition.launch.py
 ```
 2. Launch the ros2_aruco_node
 ```
-ros2 run ros2_aruco aruco_node
+ros2 run ros2_aruco aruco_node --ros-args -p aruco_dictionary_id:=DICT_6X6_100 -p marker_size:=0.1
 ```
 In rviz, add aruco_poses topic to see the position of the ArUco marker.
 
 
-## Run the module
+## Run the frontier exploration module
 ```
 ros2 run fronTEAR_commander fronTEAR_commander
 ```
