@@ -15,7 +15,7 @@ sudo apt install ros-humble-nav2-simple-commander ros-humble-tf-transformations 
 - ros2_aruco 
 ```
 pip3 install opencv-contrib-python transforms3d
-pip install numpy
+pip3 install numpy
 ```
 
 ## Build the package
