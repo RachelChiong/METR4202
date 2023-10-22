@@ -22,7 +22,8 @@ Parameters:
     camera_info_topic - camera info topic to subscribe to
                          (default /camera/camera_info)
 
-Original Repo Author: Nathan Sprague 10/26/2020
+Original Repository Author: Nathan Sprague 
+Edits made by: METR4202 Sem 2 2023 Team 5
 
 """
 
@@ -41,7 +42,21 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 
 class ArucoNode(rclpy.node.Node):
+   """
+   ArucoNode 
+
+   Detects ArUco markers placed in the map and marks them in Rviz. 
+   
+   Methods
+   (+) info_callback(info_msg)
+   (+) image_callback(img_msg)
+   
+   """
+   
     def __init__(self):
+       """
+       Intialises the ArUco detection node and sets up the subscribers and publishers. 
+       """
         super().__init__("aruco_node")
 
         # Declare and read parameters
@@ -150,6 +165,11 @@ class ArucoNode(rclpy.node.Node):
         self.bridge = CvBridge()
 
     def info_callback(self, info_msg):
+       """
+       
+       Camera callback to store camera information and processes any camera distortions. 
+       
+       """
         self.info_msg = info_msg
         self.intrinsic_mat = np.reshape(np.array(self.info_msg.k), (3, 3))
         self.distortion = np.array(self.info_msg.d)
@@ -157,6 +177,13 @@ class ArucoNode(rclpy.node.Node):
         self.destroy_subscription(self.info_sub)
 
     def image_callback(self, img_msg):
+       """
+       
+       Image callback to detect ArUco Markers, determine its position and publish.
+       When a marker is detected, a notification is printed.
+       
+       """
+       
        # Check whether camera information can be accessed
         if self.info_msg is None:
             self.get_logger().warn("No camera info has been received!")
@@ -165,9 +192,9 @@ class ArucoNode(rclpy.node.Node):
         # Conver the ArUco markers into greyscale
         cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="mono8")
         # Store ArUco Marker information
-       
         markers = ArucoMarkers()
         pose_array = PoseArray()
+       
         if self.camera_frame == "":
             markers.header.frame_id = self.info_msg.header.frame_id
             pose_array.header.frame_id = self.info_msg.header.frame_id
@@ -216,7 +243,7 @@ class ArucoNode(rclpy.node.Node):
             self.poses_pub.publish(pose_array)
             self.markers_pub.publish(markers)
            
-            # Notify operator if a marker has beenn detected
+            # Notify operator if a marker has been detected
             if markers is not None:
                 print ("Marker has been detected!")
 
