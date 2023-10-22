@@ -49,8 +49,11 @@ ros2 launch slam_toolbox online_async_launch.py
 ros2 launch ros2_aruco aruco_recognition.launch.py
 ```
 2. Launch the ros2_aruco_node
+
+parameter values can be specified by appending to the run command, such as --ros-args -p aruco_dictionary_id:=DICT_6X6_100 -p marker_size:=0.1
+
 ```
-ros2 run ros2_aruco aruco_node --ros-args -p aruco_dictionary_id:=DICT_6X6_100 -p marker_size:=0.1
+ros2 run ros2_aruco aruco_node
 ```
 In rviz, add aruco_poses topic to see the position of the ArUco marker.
 
