@@ -12,6 +12,9 @@ These can be installed using
 ```
 sudo apt install ros-humble-nav2-simple-commander ros-humble-tf-transformations python3-transforms3d
 ```
+- ros2_aruco 
+
+pip3 install opencv-contrib-python transforms3d
 
 ## Build the package
 ```
