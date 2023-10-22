@@ -52,6 +52,6 @@ ros2 launch ros2_aruco aruco_recognition.launch.py
 ```
 ros2 run ros2_aruco aruco_node
 ```
-
+In rviz, add aruco_poses topic to see the position of the aruco marker.
 
 
