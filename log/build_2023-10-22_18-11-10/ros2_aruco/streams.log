@@ -1,0 +1,7 @@
+[3.112s] Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build --no-deps install_data
+[3.875s] running develop
+[4.251s] running egg_info
+[4.257s] writing manifest file 'ros2_aruco.egg-info/SOURCES.txt'
+[4.262s] running build_ext
+[4.264s] running install_data
+[4.343s] Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco' returned '0': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build --no-deps install_data

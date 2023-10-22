@@ -1,0 +1,7 @@
+[1.174s] Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/build --no-deps install_data
+[1.450s] running develop
+[1.565s] running egg_info
+[1.568s] writing manifest file 'fronTEAR_commander.egg-info/SOURCES.txt'
+[1.569s] running build_ext
+[1.570s] running install_data
+[1.601s] Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander' returned '0': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/build --no-deps install_data

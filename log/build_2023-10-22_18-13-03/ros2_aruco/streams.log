@@ -1,0 +1,26 @@
+[3.600s] Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --uninstall --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build
+[4.640s] running develop
+[5.341s] Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco' returned '0': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --uninstall --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build
+[5.344s] Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py egg_info --egg-base ../build/ros2_aruco build --build-base /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build install --record /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/install.log --single-version-externally-managed
+[6.242s] running egg_info
+[6.263s] writing manifest file '../build/ros2_aruco/ros2_aruco.egg-info/SOURCES.txt'
+[6.264s] running build
+[6.265s] running build_py
+[6.265s] creating /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build
+[6.268s] creating /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build/lib
+[6.272s] creating /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build/lib/ros2_aruco
+[6.272s] copying ros2_aruco/aruco_node.py -> /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build/lib/ros2_aruco
+[6.273s] copying ros2_aruco/aruco_generate_marker.py -> /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build/lib/ros2_aruco
+[6.276s] copying ros2_aruco/__init__.py -> /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build/lib/ros2_aruco
+[6.277s] running install
+[6.280s] running install_lib
+[6.286s] creating /home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages/ros2_aruco
+[6.286s] byte-compiling /home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages/ros2_aruco/aruco_node.py to aruco_node.cpython-310.pyc
+[6.293s] byte-compiling /home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages/ros2_aruco/aruco_generate_marker.py to aruco_generate_marker.cpython-310.pyc
+[6.293s] byte-compiling /home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages/ros2_aruco/__init__.py to __init__.cpython-310.pyc
+[6.294s] running install_data
+[6.302s] running install_egg_info
+[6.304s] Copying ../build/ros2_aruco/ros2_aruco.egg-info to /home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages/ros2_aruco-0.1.0-py3.10.egg-info
+[6.311s] running install_scripts
+[6.390s] writing list of installed files to '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/install.log'
+[6.520s] Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco' returned '0': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py egg_info --egg-base ../build/ros2_aruco build --build-base /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build install --record /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/install.log --single-version-externally-managed

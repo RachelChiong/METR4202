@@ -1,0 +1,12 @@
+running develop
+running egg_info
+creating fronTEAR_commander.egg-info
+writing manifest file 'fronTEAR_commander.egg-info/SOURCES.txt'
+writing manifest file 'fronTEAR_commander.egg-info/SOURCES.txt'
+running build_ext
+running install_data
+creating /home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/ament_index
+creating /home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/ament_index/resource_index
+creating /home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/ament_index/resource_index/packages
+copying resource/fronTEAR_commander -> /home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/ament_index/resource_index/packages
+copying package.xml -> /home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander

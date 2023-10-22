@@ -1,0 +1,246 @@
+[2.092s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--symlink-install']
+[2.092s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=True, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=12, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=None, packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, verb_parser=<colcon_defaults.argument_parser.defaults.DefaultArgumentsDecorator object at 0x7f53e3a3d3f0>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x7f53e3a3f040>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x7f53e3a3f040>>)
+[2.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[2.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[2.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[2.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[2.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[2.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[2.158s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/s4726042/turtlebot3_ws/src/METR4202'
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[2.158s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[2.174s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[2.174s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[2.174s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[2.174s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[2.174s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extensions ['ignore', 'ignore_ament_install']
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extension 'ignore'
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extension 'ignore_ament_install'
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extensions ['colcon_pkg']
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extension 'colcon_pkg'
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extensions ['colcon_meta']
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extension 'colcon_meta'
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extensions ['ros']
+[2.175s] Level 1:colcon.colcon_core.package_identification:_identify(fronTEAR_commander) by extension 'ros'
+[2.179s] DEBUG:colcon.colcon_core.package_identification:Package 'fronTEAR_commander' with type 'ros.ament_python' and name 'fronTEAR_commander'
+[2.179s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[2.179s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[2.179s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[2.179s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[2.179s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[2.179s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extensions ['ignore', 'ignore_ament_install']
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extension 'ignore'
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extension 'ignore_ament_install'
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extensions ['colcon_pkg']
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extension 'colcon_pkg'
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extensions ['colcon_meta']
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extension 'colcon_meta'
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extensions ['ros']
+[2.180s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco) by extension 'ros'
+[2.181s] DEBUG:colcon.colcon_core.package_identification:Package 'ros2_aruco' with type 'ros.ament_python' and name 'ros2_aruco'
+[2.181s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extensions ['ignore', 'ignore_ament_install']
+[2.181s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extension 'ignore'
+[2.181s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extension 'ignore_ament_install'
+[2.181s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extensions ['colcon_pkg']
+[2.181s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extension 'colcon_pkg'
+[2.182s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extensions ['colcon_meta']
+[2.182s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extension 'colcon_meta'
+[2.182s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extensions ['ros']
+[2.182s] Level 1:colcon.colcon_core.package_identification:_identify(ros2_aruco_interfaces) by extension 'ros'
+[2.182s] DEBUG:colcon.colcon_core.package_identification:Package 'ros2_aruco_interfaces' with type 'ros.ament_cmake' and name 'ros2_aruco_interfaces'
+[2.182s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[2.182s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[2.182s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[2.182s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[2.182s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[2.253s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[2.254s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[2.275s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 1 installed packages in /home/s4726042/ros2_ws/install
+[2.283s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 7 installed packages in /home/s4726042/turtlebot3_ws/install
+[2.291s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 378 installed packages in /opt/ros/humble
+[2.300s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[2.368s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'cmake_args' from command line to 'None'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'cmake_target' from command line to 'None'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'cmake_clean_cache' from command line to 'False'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'cmake_clean_first' from command line to 'False'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'cmake_force_configure' from command line to 'False'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'ament_cmake_args' from command line to 'None'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'catkin_cmake_args' from command line to 'None'
+[2.369s] Level 5:colcon.colcon_core.verb:set package 'fronTEAR_commander' build argument 'catkin_skip_building_tests' from command line to 'False'
+[2.369s] DEBUG:colcon.colcon_core.verb:Building package 'fronTEAR_commander' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander', 'merge_install': False, 'path': '/home/s4726042/turtlebot3_ws/src/METR4202/fronTEAR_commander', 'symlink_install': True, 'test_result_base': None}
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'cmake_args' from command line to 'None'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'cmake_target' from command line to 'None'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'cmake_clean_cache' from command line to 'False'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'cmake_clean_first' from command line to 'False'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'cmake_force_configure' from command line to 'False'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'ament_cmake_args' from command line to 'None'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'catkin_cmake_args' from command line to 'None'
+[2.376s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco' build argument 'catkin_skip_building_tests' from command line to 'False'
+[2.376s] DEBUG:colcon.colcon_core.verb:Building package 'ros2_aruco' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco', 'merge_install': False, 'path': '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco', 'symlink_install': True, 'test_result_base': None}
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'cmake_args' from command line to 'None'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'cmake_target' from command line to 'None'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'cmake_clean_cache' from command line to 'False'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'cmake_clean_first' from command line to 'False'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'cmake_force_configure' from command line to 'False'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'ament_cmake_args' from command line to 'None'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'catkin_cmake_args' from command line to 'None'
+[2.383s] Level 5:colcon.colcon_core.verb:set package 'ros2_aruco_interfaces' build argument 'catkin_skip_building_tests' from command line to 'False'
+[2.383s] DEBUG:colcon.colcon_core.verb:Building package 'ros2_aruco_interfaces' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces', 'merge_install': False, 'path': '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco_interfaces', 'symlink_install': True, 'test_result_base': None}
+[2.390s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[2.398s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[2.398s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/s4726042/turtlebot3_ws/src/METR4202/fronTEAR_commander' with build type 'ament_python'
+[2.399s] Level 1:colcon.colcon_core.shell:create_environment_hook('fronTEAR_commander', 'ament_prefix_path')
+[2.413s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[2.413s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/hook/ament_prefix_path.ps1'
+[2.414s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/hook/ament_prefix_path.dsv'
+[2.415s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/hook/ament_prefix_path.sh'
+[2.423s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.423s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.454s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco' with build type 'ament_python'
+[2.454s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco', 'ament_prefix_path')
+[2.464s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/hook/ament_prefix_path.ps1'
+[2.464s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/hook/ament_prefix_path.dsv'
+[2.464s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/hook/ament_prefix_path.sh'
+[2.472s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.472s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.503s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco_interfaces' with build type 'ament_cmake'
+[2.503s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco_interfaces'
+[2.511s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.511s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.710s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/s4726042/turtlebot3_ws/src/METR4202/fronTEAR_commander'
+[2.718s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.718s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.914s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/s4726042/turtlebot3_ws/src/METR4202/ros2_aruco'
+[2.921s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.922s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.956s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/s4726042/ros2_ws/install/m4202_py_pkg:/home/s4726042/turtlebot3_ws/install/waypoint_commander:/home/s4726042/turtlebot3_ws/install/turtlebot3_gazebo:/home/s4726042/turtlebot3_ws/install/ros2_aruco:/home/s4726042/turtlebot3_ws/install/fronTEAR_commander:/opt/ros/humble /usr/bin/cmake --build /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces -- -j12 -l12
+[3.349s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/s4726042/ros2_ws/install/m4202_py_pkg:/home/s4726042/turtlebot3_ws/install/waypoint_commander:/home/s4726042/turtlebot3_ws/install/turtlebot3_gazebo:/home/s4726042/turtlebot3_ws/install/ros2_aruco:/home/s4726042/turtlebot3_ws/install/fronTEAR_commander:/opt/ros/humble /usr/bin/cmake --build /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces -- -j12 -l12
+[3.393s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/s4726042/ros2_ws/install/m4202_py_pkg:/home/s4726042/turtlebot3_ws/install/waypoint_commander:/home/s4726042/turtlebot3_ws/install/turtlebot3_gazebo:/home/s4726042/turtlebot3_ws/install/ros2_aruco:/home/s4726042/turtlebot3_ws/install/fronTEAR_commander:/opt/ros/humble /usr/bin/cmake --install /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces
+[3.489s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ros2_aruco_interfaces)
+[3.489s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/s4726042/ros2_ws/install/m4202_py_pkg:/home/s4726042/turtlebot3_ws/install/waypoint_commander:/home/s4726042/turtlebot3_ws/install/turtlebot3_gazebo:/home/s4726042/turtlebot3_ws/install/ros2_aruco:/home/s4726042/turtlebot3_ws/install/fronTEAR_commander:/opt/ros/humble /usr/bin/cmake --install /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco_interfaces
+[3.515s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces' for CMake module files
+[3.516s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces' for CMake config files
+[3.517s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco_interfaces', 'cmake_prefix_path')
+[3.539s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/cmake_prefix_path.ps1'
+[3.540s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/cmake_prefix_path.dsv'
+[3.540s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/cmake_prefix_path.sh'
+[3.541s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/lib'
+[3.541s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco_interfaces', 'ld_library_path_lib')
+[3.552s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/ld_library_path_lib.ps1'
+[3.552s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/ld_library_path_lib.dsv'
+[3.552s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/ld_library_path_lib.sh'
+[3.552s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/bin'
+[3.553s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/lib/pkgconfig/ros2_aruco_interfaces.pc'
+[3.553s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/lib/python3.10/site-packages'
+[3.553s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/bin'
+[3.562s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.ps1'
+[3.563s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.dsv'
+[3.564s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.sh'
+[3.565s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.bash'
+[3.566s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.zsh'
+[3.567s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/colcon-core/packages/ros2_aruco_interfaces)
+[3.573s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/build --no-deps install_data
+[3.584s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build --no-deps install_data
+[3.636s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ros2_aruco_interfaces)
+[3.645s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces' for CMake module files
+[3.645s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces' for CMake config files
+[3.646s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco_interfaces', 'cmake_prefix_path')
+[3.660s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/cmake_prefix_path.ps1'
+[3.660s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/cmake_prefix_path.dsv'
+[3.660s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/cmake_prefix_path.sh'
+[3.661s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/lib'
+[3.661s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco_interfaces', 'ld_library_path_lib')
+[3.680s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/ld_library_path_lib.ps1'
+[3.681s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/ld_library_path_lib.dsv'
+[3.681s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/hook/ld_library_path_lib.sh'
+[3.681s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/bin'
+[3.681s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/lib/pkgconfig/ros2_aruco_interfaces.pc'
+[3.681s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/lib/python3.10/site-packages'
+[3.681s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/bin'
+[3.690s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.ps1'
+[3.691s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.dsv'
+[3.691s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.sh'
+[3.691s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.bash'
+[3.691s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/ros2_aruco_interfaces/package.zsh'
+[3.692s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco_interfaces/share/colcon-core/packages/ros2_aruco_interfaces)
+[3.995s] Level 1:colcon.colcon_core.shell:create_environment_hook('fronTEAR_commander', 'pythonpath_develop')
+[4.001s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander' returned '0': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/build --no-deps install_data
+[4.009s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath_develop.ps1'
+[4.009s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath_develop.dsv'
+[4.010s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/build/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath_develop.sh'
+[4.019s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander' for CMake module files
+[4.020s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander' for CMake config files
+[4.020s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib'
+[4.020s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/bin'
+[4.020s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib/pkgconfig/fronTEAR_commander.pc'
+[4.020s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/lib/python3.10/site-packages'
+[4.020s] Level 1:colcon.colcon_core.shell:create_environment_hook('fronTEAR_commander', 'pythonpath')
+[4.029s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath.ps1'
+[4.030s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath.dsv'
+[4.030s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/hook/pythonpath.sh'
+[4.030s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/bin'
+[4.030s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(fronTEAR_commander)
+[4.040s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/package.ps1'
+[4.040s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/package.dsv'
+[4.040s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/package.sh'
+[4.041s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/package.bash'
+[4.041s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/fronTEAR_commander/package.zsh'
+[4.041s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/s4726042/turtlebot3_ws/src/METR4202/install/fronTEAR_commander/share/colcon-core/packages/fronTEAR_commander)
+[4.042s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco', 'pythonpath_develop')
+[4.044s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco' returned '0': PYTHONPATH=/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/prefix_override:/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/build --no-deps install_data
+[4.055s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/share/ros2_aruco/hook/pythonpath_develop.ps1'
+[4.055s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/share/ros2_aruco/hook/pythonpath_develop.dsv'
+[4.055s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/build/ros2_aruco/share/ros2_aruco/hook/pythonpath_develop.sh'
+[4.065s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco' for CMake module files
+[4.065s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco' for CMake config files
+[4.066s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib'
+[4.066s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/bin'
+[4.066s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/pkgconfig/ros2_aruco.pc'
+[4.066s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/lib/python3.10/site-packages'
+[4.066s] Level 1:colcon.colcon_core.shell:create_environment_hook('ros2_aruco', 'pythonpath')
+[4.075s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/hook/pythonpath.ps1'
+[4.076s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/hook/pythonpath.dsv'
+[4.076s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/hook/pythonpath.sh'
+[4.076s] Level 1:colcon.colcon_core.environment:checking '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/bin'
+[4.076s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(ros2_aruco)
+[4.088s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/package.ps1'
+[4.088s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/package.dsv'
+[4.088s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/package.sh'
+[4.089s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/package.bash'
+[4.089s] INFO:colcon.colcon_core.shell:Creating package script '/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/ros2_aruco/package.zsh'
+[4.089s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/s4726042/turtlebot3_ws/src/METR4202/install/ros2_aruco/share/colcon-core/packages/ros2_aruco)
+[4.089s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[4.090s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[4.090s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[4.090s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[4.218s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[4.218s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[4.218s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[4.218s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[4.220s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.Notifications was not provided by any .service files
+[4.220s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[4.232s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/s4726042/turtlebot3_ws/src/METR4202/install/local_setup.ps1'
+[4.235s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/s4726042/turtlebot3_ws/src/METR4202/install/_local_setup_util_ps1.py'
+[4.237s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/s4726042/turtlebot3_ws/src/METR4202/install/setup.ps1'
+[4.248s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/s4726042/turtlebot3_ws/src/METR4202/install/local_setup.sh'
+[4.249s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/s4726042/turtlebot3_ws/src/METR4202/install/_local_setup_util_sh.py'
+[4.249s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/s4726042/turtlebot3_ws/src/METR4202/install/setup.sh'
+[4.260s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/s4726042/turtlebot3_ws/src/METR4202/install/local_setup.bash'
+[4.261s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/s4726042/turtlebot3_ws/src/METR4202/install/setup.bash'
+[4.272s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/s4726042/turtlebot3_ws/src/METR4202/install/local_setup.zsh'
+[4.273s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/s4726042/turtlebot3_ws/src/METR4202/install/setup.zsh'
